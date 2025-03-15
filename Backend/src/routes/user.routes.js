@@ -1,18 +1,29 @@
 import { Router } from "express";
 import { varifyJWT } from "../middlewares/auth.middleware.js";
-import {} from "../controllers/user.controller.js"
-
-const router = Router();
-
-// router.route("/create-post").post(varifyJWT,createPost);
-// router.route("/get-posts").get(getAllPosts);
-// router.route("/updatepost").patch(varifyJWT,updatePost);
-// router.route("/my-posts").get(varifyJWT,getPostAddedByLoggedUser);
-// router.route("/filter").get(getAllPostsbyFilter);
-// router.route("/internship").get(getAllPostOfInternship);
-// router.route("/fulltime").get(getAllPostOfFulltime);
-// router.route("/get-applied-jobs").get(varifyJWT,getAllPostOfFulltime);
-// router.route("/get-myapplied").get(varifyJWT,getMyAppliedJobs); 
-// router.route("/delete-post/:id").delete(varifyJWT, deletePost);
-
-export default router;
+import {upload} from "../middlewares/multer.middleware.js"
+import {registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    getCurrentUser,
+    changeCurrentPassword,
+    updateAccountDetails,
+    updateUserProfileImage,} from "../controllers/user.controller.js"
+    const router = Router();
+    router.route("/register").post(
+        upload.fields([
+            {
+                name:"profileImage",
+                maxCount:1
+            }
+        ]),
+        registerUser
+    )
+    router.route("/login").post(loginUser);
+    router.route("/logout").post(varifyJWT,logoutUser);
+    router.route("/refresh-token").post(refreshAccessToken);
+    router.route("/change-password").post(varifyJWT,changeCurrentPassword);
+    router.route("/current-user").get(varifyJWT,getCurrentUser);
+    router.route("/update-account").patch(varifyJWT,updateAccountDetails);
+    router.route("/profile-image").patch(varifyJWT,upload.single("profileImage"),updateUserProfileImage);
+    export default router;
