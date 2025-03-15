@@ -18,11 +18,11 @@ app.use(cookieParser())
 //routes import
 
 import userRouter from "./routes/user.routes.js"
-// import postRouter from "./routes/post.routes.js"
+import blogRouter from "./routes/blog.routes.js"
 
 //routes declaration
 app.use("/api/farmwise/users",userRouter)
-// app.use("/api/farmwise/post",postRouter)
+app.use("/api/farmwise/blog",blogRouter)
 app.get('/api/health', (req, res) => {
     res.status(200).json({ message: "Service is healthy!" });
 });
