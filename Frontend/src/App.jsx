@@ -5,6 +5,7 @@ import Home from './pages/HomePage';
 import Signup from './pages/Signup';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
+import Blog from './pages/BlogPage';
 
 function App() {
 
@@ -13,9 +14,9 @@ function App() {
       <Navbar/>
       <Routes>
         <Route path='/' element={<Home/>}/>
-        <Route path='/home' element={<Home/>}/>
         <Route path='/signup' element={<Signup/>}/>
         <Route path='/login' element={<Login/>}/>
+        <Route path='/blog' element={<Blog/>}/>
       </Routes>
     </Router>
   )
