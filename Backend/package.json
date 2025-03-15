@@ -15,7 +15,7 @@
   "version": "1.0.0",
   "description": "Backend ",
   "main": "index.js",
-  "type" : "module",
+  "type": "module",
   "devDependencies": {},
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
