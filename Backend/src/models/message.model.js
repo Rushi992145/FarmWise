@@ -2,13 +2,22 @@ import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema(
   {
-    senderId: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    text: {
+    message: {
       type: String,
+      required: true,  
+    },
+    threadId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Thread",
+    },
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
     },
     image: {
       type: String,
@@ -17,6 +26,4 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const Message = mongoose.model("Message", messageSchema);
-
-export default Message;
+export const Message = mongoose.model("Message", messageSchema);
