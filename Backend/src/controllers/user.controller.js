@@ -27,7 +27,7 @@ const registerUser = asyncHandler(async(req,res) => {
     //     message:"ok"
     // })    
 
-    const {fullname,username,email,password,userType,mobileno} = req.body;
+    const {fullname,username,email,password,userType,mobileno,specialization,birthDate} = req.body;
     console.log(req.body);
 
     if(
@@ -50,7 +50,8 @@ const registerUser = asyncHandler(async(req,res) => {
         email,
         password,
         username:username.toLowerCase(),
-        mobileNumber,
+        mobileno,
+        specialization,
         birthDate
     })
     const {accessToken,refreshToken} =  await generateAccessAndRefreshTokens(user._id);
