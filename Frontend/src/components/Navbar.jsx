@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useLocation } from "react-router-dom";
-import { FaBars, FaTimes } from "react-icons/fa";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { FaBars, FaTimes, FaChevronDown, FaUserCircle } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { logoutUser } from "../store/features/authSlice";
 
 const Navbar = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [isLoggedIn, setisLoggedIn] = useState(false);
-    const [user, setuser] = useState({ name: "Anuj" });
     const [navBg, setNavBg] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const dispatch = useDispatch();
+    const { user } = useSelector((state) => state.auth);
     const location = useLocation();
+    const navigate = useNavigate();
 
     const toggleDropdown = () => setDropdownOpen((prev) => !prev);
     const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
@@ -72,6 +76,15 @@ const Navbar = () => {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await dispatch(logoutUser()).unwrap();
+            navigate('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
+
     return (
         <motion.nav
             className='fixed top-0 w-full flex items-center justify-between p-4 transition-all duration-300 z-50 shadow-md backdrop-blur'
@@ -87,7 +100,6 @@ const Navbar = () => {
                 </motion.div>
             </Link>
 
-            {/* Desktop Menu */}
             <div className="hidden md:flex space-x-6">
                 {navItems.map((item, index) => (
                     <motion.div
@@ -159,18 +171,18 @@ const Navbar = () => {
                 )}
             </AnimatePresence>
 
-            {/* Auth Buttons */}
             <motion.div
                 className="relative"
                 initial={{ y: 50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.5 }}
             >
-                {isLoggedIn ? (
-                    <div className="flex items-center cursor-pointer" onClick={toggleDropdown}>
-                        <span className="material-symbols-outlined text-green-600 text-3xl">account_circle</span>
-                        <span className="text-gray-800 ml-2 hidden md:inline">{user.name}</span>
-                        <span className="material-symbols-outlined">keyboard_arrow_down</span>
+                {user ? (
+                    <div className="flex items-center cursor-pointer gap-2" onClick={toggleDropdown}>
+                        <FaUserCircle size={30} />
+                        <span className="text-gray-800 ml-2 hidden md:inline">
+                            {user?.username || user?.userName}
+                        </span>
                         <AnimatePresence>
                             {dropdownOpen && (
                                 <motion.div
@@ -188,7 +200,7 @@ const Navbar = () => {
                                             Profile
                                         </motion.div>
                                     </Link>
-                                    <Link to="/logout">
+                                    <Link to="#" onClick={handleLogout}>
                                         <motion.div
                                             className="block px-4 py-2 text-gray-800 hover:bg-green-50 rounded-b-lg"
                                             whileHover={{ scale: 1.05, backgroundColor: "rgba(34, 197, 94, 0.1)" }}

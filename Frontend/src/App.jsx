@@ -1,4 +1,4 @@
-import React,{ useState } from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import './App.css'
 import Home from './pages/HomePage';
@@ -10,8 +10,16 @@ import Footer from './components/Footer';
 import AiPage from './pages/AiPage';
 import NewsPage from './pages/NewsPage';
 import DiscussionPage from './pages/DiscussionPage';
+import { useDispatch } from 'react-redux';
+import { getMe } from './store/features/authSlice';
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    // @ts-ignore
+    dispatch(getMe());
+  }, [dispatch]);
 
   return (
     <div className="flex flex-col min-h-screen">

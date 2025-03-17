@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../store/features/authSlice';
@@ -7,7 +7,8 @@ import { useNavigate } from 'react-router-dom';
 const Signup = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  // @ts-ignore
+  const { user, loading, error } = useSelector((state) => state.auth);
   const [userType, setUserType] = useState("");
   const [formData, setFormData] = useState({
     fullname: '',
@@ -18,6 +19,11 @@ const Signup = () => {
     specialization: [],
     username: '',
   });
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user])
 
   const handleChange = (e) => {
     setFormData({
@@ -37,18 +43,21 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const username = formData.email.split('@')[0];
+    console.log(formData)
 
     const userData = {
       ...formData,
-      username,
       specialization: userType === 'expert' ? formData.specialization : []
     };
 
-    const resultAction = await dispatch(registerUser(userData));
-    if (registerUser.fulfilled.match(resultAction)) {
-      navigate('/dashboard');
+    try {
+      // @ts-ignore
+      const resultAction = await dispatch(registerUser(userData)).unwrap();
+      if (resultAction) {
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Registration failed:', err);
     }
   };
 
@@ -127,6 +136,19 @@ const Signup = () => {
                   />
                 </div>
                 <div>
+                  <label htmlFor="name" className="sr-only">User Name</label>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+                    placeholder="User Name"
+                  />
+                </div>
+                <div>
                   <label htmlFor="email" className="sr-only">Email address</label>
                   <input
                     id="email"
@@ -161,10 +183,16 @@ const Signup = () => {
                       type="text"
                       required
                       value={formData.specialization.join(', ')}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        specialization: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '')
-                      })}
+                      onChange={(e) => {
+                        const newSpecializations = e.target.value
+                          .split(',')
+                          .map(s => s.trim())
+                          .filter(s => s !== '');
+                        setFormData(prev => ({
+                          ...prev,
+                          specialization: newSpecializations
+                        }));
+                      }}
                       className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
                       placeholder="Specialization (e.g., Soil Expert, Crop Specialist)"
                     />
