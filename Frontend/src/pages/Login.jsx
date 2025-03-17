@@ -1,17 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../store/features/authSlice';
+import { loginUser, clearError } from '../store/features/authSlice';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+    return () => {
+      dispatch(clearError());
+    };
+  }, [isAuthenticated, navigate, dispatch]);
 
   const handleChange = (e) => {
     setFormData({
@@ -22,16 +31,17 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const resultAction = await dispatch(loginUser(formData));
-    if (loginUser.fulfilled.match(resultAction)) {
-      navigate('/dashboard');
+    try {
+      await dispatch(loginUser(formData)).unwrap();
+    } catch (err) {
+      console.error('Login failed:', err);
     }
   };
 
   return (
     <div className="min-h-[80vh] bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-lg">
-        <motion.div 
+        <motion.div
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -41,7 +51,7 @@ const Login = () => {
           <p className="text-gray-600">Please enter your details to sign in</p>
         </motion.div>
 
-        <motion.form 
+        <motion.form
           onSubmit={handleSubmit}
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -51,7 +61,7 @@ const Login = () => {
           {error && (
             <div className="text-red-500 text-sm text-center">{error}</div>
           )}
-          
+
           <div className="rounded-md shadow-sm space-y-4">
             <div>
               <label htmlFor="email" className="sr-only">Email address</label>

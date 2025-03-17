@@ -49,6 +49,7 @@ const registerUser = asyncHandler(async(req,res) => {
         coverImage:"",
         email,
         password,
+        userType,
         username:username.toLowerCase(),
         mobileno,
         specialization,
@@ -66,7 +67,7 @@ const registerUser = asyncHandler(async(req,res) => {
     }
     const options = {
         httpOnly: true,
-        secure: true
+        secure: true,
     }
 
     return res.status(201)
@@ -168,7 +169,7 @@ const refreshAccessToken = asyncHandler(async(req,res) => {
     
         const options = {
             httpOnly:true,
-            secure:true
+            secure:true,
         }
     
         const {accessToken,newrefreshToken} = await generateAccessAndRefreshTokens(user._id)
