@@ -12,6 +12,7 @@ import NewsPage from './pages/NewsPage';
 import DiscussionPage from './pages/DiscussionPage';
 import { useDispatch } from 'react-redux';
 import { getMe } from './store/features/authSlice';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   const dispatch = useDispatch();
@@ -24,7 +25,9 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       <Router>
-        <Navbar />
+        <div className="py-6">
+          <Navbar />
+        </div>
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -34,6 +37,7 @@ function App() {
             <Route path="/aisathi" element={<AiPage />} />
             <Route path="/news" element={<NewsPage />} />
             <Route path="/discussion" element={<DiscussionPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </main>
         <Footer />

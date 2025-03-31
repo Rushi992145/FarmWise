@@ -16,7 +16,7 @@
     "@mui/material": "^6.4.7",
     "@reduxjs/toolkit": "^2.6.1",
     "@tailwindcss/vite": "^4.0.14",
-    "axios": "^1.8.3",
+    "axios": "^1.8.4",
     "material-symbols": "^0.29.1",
     "motion": "^12.5.0",
     "react": "^19.0.0",

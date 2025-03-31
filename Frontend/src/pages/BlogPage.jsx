@@ -23,10 +23,28 @@ const Blog = () => {
       const response = await axios.get('http://localhost:9000/api/farmwise/blog', {
         withCredentials: true
       });
-      setBlogs(response.data.data);
+      console.log('API Response:', response.data);
+      if (Array.isArray(response.data.data)) {
+        const validBlogs = response.data.data.map(blog => ({
+          ...blog,
+          likes: blog.likes || [],
+          comments: blog.comments || [],
+          tags: blog.tags || [],
+          author: blog.author || { username: 'Unknown', _id: '' },
+          content: blog.content || '',
+          title: blog.title || 'Untitled',
+          _id: blog._id || '',
+          createdAt: blog.createdAt || new Date().toISOString()
+        }));
+        setBlogs(validBlogs);
+      } else {
+        console.error('Invalid blog data format received');
+        setBlogs([]);
+      }
       setLoading(false);
     } catch (error) {
       console.error('Failed to fetch blogs:', error);
+      setBlogs([]);
       setLoading(false);
     }
   };
@@ -37,7 +55,7 @@ const Blog = () => {
         withCredentials: true
       });
       const updatedBlog = response.data.data;
-      setBlogs(blogs.map(blog => 
+      setBlogs(blogs.map(blog =>
         blog._id === updatedBlog._id ? updatedBlog : blog
       ));
     } catch (error) {
@@ -143,18 +161,20 @@ const Blog = () => {
                         <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                       </div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{post.title}</h3>
-                      <p className="text-gray-600 mb-4">{post.content.substring(0, 150)}...</p>
+                      <p className="text-gray-600 mb-4">
+                        {post?.content?.substring(0, 150) || 'No content available'}...
+                      </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6 text-gray-500">
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleLike(post._id);
                             }}
                             className="flex items-center space-x-2"
                           >
-                            <FaThumbsUp className={post.likes.includes(user?._id) ? "text-green-500" : ""} />
-                            <span>{post.likes.length}</span>
+                            <FaThumbsUp className={post?.likes?.includes(user?._id) ? "text-green-500" : ""} />
+                            <span>{post?.likes?.length || 0}</span>
                           </button>
                           <div className="flex items-center space-x-2">
                             <FaComments />
@@ -179,7 +199,6 @@ const Blog = () => {
             )}
           </motion.main>
 
-          {/* Right Sidebar - User Profile */}
           <motion.aside
             initial={{ x: 50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
