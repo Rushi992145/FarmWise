@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 const Signup = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  // @ts-ignore
   const { user, loading, error } = useSelector((state) => state.auth);
   const [userType, setUserType] = useState("");
   const [formData, setFormData] = useState({
@@ -43,7 +42,6 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData)
 
     const userData = {
       ...formData,
@@ -51,7 +49,6 @@ const Signup = () => {
     };
 
     try {
-      // @ts-ignore
       const resultAction = await dispatch(registerUser(userData)).unwrap();
       if (resultAction) {
         navigate('/');
@@ -60,7 +57,7 @@ const Signup = () => {
       console.error('Registration failed:', err);
     }
   };
-
+  
   return (
     <>
       <div className="min-h-[80vh] bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

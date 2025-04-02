@@ -32,16 +32,19 @@ export const logoutUser = createAsyncThunk(
 );
 
 export const registerUser = createAsyncThunk(
-  'auth/register',
+  "auth/register",
   async (userData, { rejectWithValue }) => {
     try {
       const response = await axios.post(`${BASE_URL}/farmwise/users/register`, userData, { withCredentials: true });
+
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      console.error("Registration Error:", error); // Debugging
+      return rejectWithValue(error.response?.data || "An error occurred during registration");
     }
   }
 );
+
 
 export const getMe = createAsyncThunk(
   "auth/getMe",
