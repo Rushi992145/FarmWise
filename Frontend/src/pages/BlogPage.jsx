@@ -143,7 +143,7 @@ const Blog = () => {
                         <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                       </div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{post.title}</h3>
-                      <p className="text-gray-600 mb-4">{post.content.substring(0, 150)}...</p>
+                      <p className="text-gray-600 mb-4">{post?.content}...</p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6 text-gray-500">
                           <button 
@@ -153,12 +153,12 @@ const Blog = () => {
                             }}
                             className="flex items-center space-x-2"
                           >
-                            <FaThumbsUp className={post.likes.includes(user?._id) ? "text-green-500" : ""} />
-                            <span>{post.likes.length}</span>
+                            {/* <FaThumbsUp className={post.likes ? "text-green-500" : ""} /> */}
+                            <span>100k</span>
                           </button>
                           <div className="flex items-center space-x-2">
                             <FaComments />
-                            <span>{post.comments.length}</span>
+                            <span>10</span>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -197,7 +197,7 @@ const Blog = () => {
                         <div className="flex space-x-4 mt-2 text-sm text-gray-600">
                           <span>{blogs.filter(blog => blog.author._id === selectedPost.author._id).length} posts</span>
                           <span>•</span>
-                          <span>{selectedPost.likes.length} total likes</span>
+                          <span>100k total likes</span>
                         </div>
                       </div>
                     </div>
@@ -212,7 +212,7 @@ const Blog = () => {
                           <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                           <div className="flex items-center space-x-1">
                             <FaThumbsUp className="text-xs" />
-                            <span>{post.likes.length}</span>
+                            <span>100k</span>
                           </div>
                         </div>
                       </div>

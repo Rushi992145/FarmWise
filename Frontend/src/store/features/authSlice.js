@@ -10,9 +10,9 @@ export const loginUser = createAsyncThunk(
       const response = await axios.post(`${BASE_URL}/farmwise/users/login`, credentials, {
         withCredentials: true
       });
-      return response.data;
+      return response?.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data);
     }
   }
 );
