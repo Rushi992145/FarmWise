@@ -31,12 +31,80 @@ app.get('/api/health', (req, res) => {
 
 app.get("/worldnews", async (req, res) => {
     try {
+        const { language = 'en' } = req.query;
+
+        // Simplified queries for each language
+        const queries = {
+            'en': {
+                q: 'agriculture AND india',
+                language: 'en',
+            },
+            'hi': {
+                q: 'कृषि OR खेती OR किसान',
+                language: 'hi',
+            },
+            'mr': {
+                q: 'शेती OR कृषी OR शेतकरी',
+                language: 'mr',
+            }
+        };
+
+        const selectedQuery = queries[language] || queries['en'];
+
         const response = await axios.get(
-            `https://api.apitube.io/v1/news/category/iab-qag/IAB19-31?limit=50&api_key=${process.env.NEWS_API}`
+            'https://newsapi.org/v2/everything',
+            {
+                params: {
+                    ...selectedQuery,
+                    pageSize: 30,
+                    sortBy: 'publishedAt',
+                    apiKey: process.env.NEWS_API
+                }
+            }
         );
+
+        // Log the response for debugging
+        console.log(`Fetched ${response.data.articles?.length} articles`);
+        
         res.json(response.data);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("News API Error Details:", {
+            message: error.message,
+            response: error.response?.data
+        });
+        res.status(500).json({ 
+            status: "error",
+            message: "Failed to fetch news",
+            details: error.message
+        });
+    }
+});
+
+// Alternative endpoint using top-headlines
+app.get("/indiannews", async (req, res) => {
+    try {
+        const { language = 'en' } = req.query;
+
+        const response = await axios.get(
+            'https://newsapi.org/v2/top-headlines',
+            {
+                params: {
+                    country: 'in',
+                    category: 'business',
+                    language: language === 'en' ? 'en' : 'hi',
+                    pageSize: 30,
+                    apiKey: process.env.NEWS_API
+                }
+            }
+        );
+
+        res.json(response.data);
+    } catch (error) {
+        console.error("News API Error:", error);
+        res.status(500).json({ 
+            status: "error",
+            message: "Failed to fetch news"
+        });
     }
 });
 
