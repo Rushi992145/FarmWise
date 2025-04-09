@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 export const createBlog = asyncHandler(async (req, res) => {
     const { title, content, tags } = req.body;
+    console.log(req.body);
     const userId = req.user.id;
 
     let blogPicture = null;
@@ -19,11 +20,21 @@ export const createBlog = asyncHandler(async (req, res) => {
         };
     }
 
+    // Parse tags if they are sent as a JSON string
+    let parsedTags = tags;
+    if (typeof tags === 'string') {
+        try {
+            parsedTags = JSON.parse(tags);
+        } catch (error) {
+            parsedTags = tags.split(',').map(tag => tag.trim());
+        }
+    }
+
     const blog = await Blog.create({
         title,
         content,
         author: userId,
-        tags,
+        tags: parsedTags,
         blogPicture
     });
 
@@ -33,7 +44,11 @@ export const createBlog = asyncHandler(async (req, res) => {
 export const getAllBlogs = asyncHandler(async (req, res) => {
     const blogs = await Blog.find()
         .populate('author', 'username profilePic')
-        .select('title tags blogPicture author') // Fetch only required fields
+        .populate('likes', 'username')
+        .populate({
+            path: 'comments.user',
+            select: 'username profilePic'
+        })
         .sort({ createdAt: -1 });
 
     return res.status(200).json(new ApiResponse(200, blogs, "All blogs retrieved"));
@@ -60,7 +75,7 @@ export const updateBlog = asyncHandler(async (req, res) => {
 
     if (req.file) {
         const uploadedImage = await uploadOnCloudinary(req.file.path);
-        blog.image = {
+        blog.blogPicture = {
             public_id: uploadedImage.public_id,
             url: uploadedImage.secure_url
         };
@@ -116,7 +131,15 @@ export const addComment = asyncHandler(async (req, res) => {
     blog.comments.push(newComment);
     await blog.save();
 
-    return res.status(200).json(new ApiResponse(200, blog, "Comment added"));
+    // Fetch the updated blog with populated user data
+    const updatedBlog = await Blog.findById(req.params.id)
+        .populate('author', 'username profilePic')
+        .populate({
+            path: 'comments.user',
+            select: 'username profilePic'
+        });
+
+    return res.status(200).json(new ApiResponse(200, updatedBlog, "Comment added successfully"));
 });
 
 export const getComments = asyncHandler(async (req, res) => {

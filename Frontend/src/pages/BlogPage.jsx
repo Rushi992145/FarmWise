@@ -4,6 +4,7 @@ import { FaThumbsUp, FaUser, FaSearch, FaHotjar, FaTrophy, FaClock, FaComments, 
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import CreateBlogModal from "../components/CreateBlogModal";
+import BlogDetail from "../components/BlogDetail";
 
 const Blog = () => {
   const [selectedPost, setSelectedPost] = useState(null);
@@ -13,6 +14,7 @@ const Blog = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { user } = useSelector((state) => state.auth);
+  const { accessToken } = useSelector((state) => state.auth);
 
   useEffect(() => {
     fetchBlogs();
@@ -21,9 +23,9 @@ const Blog = () => {
   const fetchBlogs = async () => {
     try {
       const response = await axios.get('http://localhost:9000/api/farmwise/blog', {
-        withCredentials: true
+        withCredentials: true,
       });
-      console.log('API Response:', response.data);
+      console.log('API Response:', response);
       if (Array.isArray(response.data.data)) {
         const validBlogs = response.data.data.map(blog => ({
           ...blog,
@@ -31,7 +33,6 @@ const Blog = () => {
           comments: blog.comments || [],
           tags: blog.tags || [],
           author: blog.author || { username: 'Unknown', _id: '' },
-          content: blog.content || '',
           title: blog.title || 'Untitled',
           _id: blog._id || '',
           createdAt: blog.createdAt || new Date().toISOString()
@@ -51,13 +52,16 @@ const Blog = () => {
 
   const handleLike = async (blogId) => {
     try {
-      const response = await axios.patch(`http://localhost:9000/api/farmwise/blog/${blogId}/like`, {}, {
+      const response = await axios.patch(`http://localhost:9000/api/farmwise/blog/${blogId}/like`, { accessToken }, {
         withCredentials: true
       });
       const updatedBlog = response.data.data;
       setBlogs(blogs.map(blog =>
         blog._id === updatedBlog._id ? updatedBlog : blog
       ));
+      if (selectedPost?._id === blogId) {
+        setSelectedPost(updatedBlog);
+      }
     } catch (error) {
       console.error('Failed to like blog:', error);
     }
@@ -65,6 +69,22 @@ const Blog = () => {
 
   const handleBlogCreated = (newBlog) => {
     setBlogs([newBlog, ...blogs]);
+  };
+
+  const handleBlogSelect = async (blog) => {
+    try {
+      const response = await axios.get(`http://localhost:9000/api/farmwise/blog/${blog._id}`, {
+        withCredentials: true,
+      });
+      setSelectedPost(response.data.data);
+    } catch (error) {
+      console.error('Failed to fetch blog details:', error);
+    }
+  };
+
+  const handleBlogDeleted = (deletedBlogId) => {
+    setBlogs(prevBlogs => prevBlogs.filter(blog => blog._id !== deletedBlogId));
+    setSelectedPost(null);
   };
 
   const filteredPosts = blogs.filter((post) =>
@@ -144,11 +164,11 @@ const Blog = () => {
                     key={post._id}
                     whileHover={{ scale: 1.01 }}
                     className="bg-white rounded-2xl shadow-md overflow-hidden cursor-pointer"
-                    onClick={() => setSelectedPost(post)}
+                    onClick={() => handleBlogSelect(post)}
                   >
                     {post.blogPicture && (
                       <img
-                        src={post.blogPicture}
+                        src={post.blogPicture.url}
                         alt={post.title}
                         className="w-full h-48 object-cover"
                       />
@@ -161,9 +181,6 @@ const Blog = () => {
                         <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                       </div>
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{post.title}</h3>
-                      <p className="text-gray-600 mb-4">
-                        {post?.content?.substring(0, 150) || 'No content available'}...
-                      </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6 text-gray-500">
                           <button
@@ -178,17 +195,17 @@ const Blog = () => {
                           </button>
                           <div className="flex items-center space-x-2">
                             <FaComments />
-                            <span>10</span>
+                            <span>{post?.comments?.length || 0}</span>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           {post.tags.map((tag, index) => (
-                            <span
+                            <div
                               key={index}
-                              className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm"
+                              className="px-4 py-2 bg-white border border-green-200 rounded-lg shadow-sm hover:shadow-md hover:border-green-300 transition-all duration-300"
                             >
-                              {tag}
-                            </span>
+                              <span className="text-green-700 font-medium">{tag}</span>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -231,7 +248,7 @@ const Blog = () => {
                           <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                           <div className="flex items-center space-x-1">
                             <FaThumbsUp className="text-xs" />
-                            <span>100k</span>
+                            <span>{post.likes?.length || 0}</span>
                           </div>
                         </div>
                       </div>
@@ -253,6 +270,17 @@ const Blog = () => {
           <CreateBlogModal
             onClose={() => setShowCreateModal(false)}
             onBlogCreated={handleBlogCreated}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedPost && (
+          <BlogDetail
+            blog={selectedPost}
+            onClose={() => setSelectedPost(null)}
+            onLike={handleLike}
+            onDelete={handleBlogDeleted}
           />
         )}
       </AnimatePresence>

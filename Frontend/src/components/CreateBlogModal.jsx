@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import BlogEditor from './BlogEditor';
 import axios from 'axios';
+import { useSelector } from 'react-redux';
 
 const CreateBlogModal = ({ onClose, onBlogCreated }) => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ const CreateBlogModal = ({ onClose, onBlogCreated }) => {
     blogImage: null
   });
   const [preview, setPreview] = useState(null);
+  const { accessToken } = useSelector((state) => state.auth);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -26,17 +28,22 @@ const CreateBlogModal = ({ onClose, onBlogCreated }) => {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('content', formData.content);
-      formDataToSend.append('tags', formData.tags.split(',').map(tag => tag.trim()));
+      formDataToSend.append('tags', JSON.stringify(formData.tags.split(',').map(tag => tag.trim()))); // Tags as JSON string
       if (formData.blogImage) {
         formDataToSend.append('blogImage', formData.blogImage);
       }
 
-      const response = await axios.post('http://localhost:9000/api/farmwise/blog', formDataToSend, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'multipart/form-data'
+      const response = await axios.post(
+        'http://localhost:9000/api/farmwise/blog',
+        formDataToSend,
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${accessToken}`
+          }
         }
-      });
+      );
 
       onBlogCreated(response.data.data);
       onClose();
@@ -117,4 +124,4 @@ const CreateBlogModal = ({ onClose, onBlogCreated }) => {
   );
 };
 
-export default CreateBlogModal; 
+export default CreateBlogModal;
