@@ -13,6 +13,7 @@ import DiscussionPage from './pages/DiscussionPage';
 import { useDispatch } from 'react-redux';
 import { getMe } from './store/features/authSlice';
 import ProfilePage from './pages/ProfilePage';
+import Chat from './pages/Chat';
 
 function App() {
   const dispatch = useDispatch();
@@ -36,7 +37,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/aisathi" element={<AiPage />} />
             <Route path="/news" element={<NewsPage />} />
-            <Route path="/discussion" element={<DiscussionPage />} />
+            <Route path="/discussion" element={<Chat />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </main>

@@ -1,18 +1,15 @@
 import { Router } from "express";
 import { varifyJWT } from "../middlewares/auth.middleware.js";
-import {} from "../controllers/message.controller.js"
+import { upload } from "../middlewares/multer.middleware.js";
+import { sendMessage, getMessages } from "../controllers/message.controller.js";
 
 const router = Router();
 
-// router.route("/create-post").post(varifyJWT,createPost);
-// router.route("/get-posts").get(getAllPosts);
-// router.route("/updatepost").patch(varifyJWT,updatePost);
-// router.route("/my-posts").get(varifyJWT,getPostAddedByLoggedUser);
-// router.route("/filter").get(getAllPostsbyFilter);
-// router.route("/internship").get(getAllPostOfInternship);
-// router.route("/fulltime").get(getAllPostOfFulltime);
-// router.route("/get-applied-jobs").get(varifyJWT,getAllPostOfFulltime);
-// router.route("/get-myapplied").get(varifyJWT,getMyAppliedJobs); 
-// router.route("/delete-post/:id").delete(varifyJWT, deletePost);
+router.route("/send").post(
+    varifyJWT,
+    upload.fields([{ name: "image", maxCount: 1 }]),
+    sendMessage
+);
+router.route("/get").get(varifyJWT, getMessages);
 
 export default router;
