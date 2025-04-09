@@ -10,6 +10,7 @@ import Footer from './components/Footer';
 import AiPage from './pages/AiPage';
 import NewsPage from './pages/NewsPage';
 import DiscussionPage from './pages/DiscussionPage';
+import ExpertsPage from './pages/ExpertsPage';
 import { useDispatch } from 'react-redux';
 import { getMe } from './store/features/authSlice';
 import ProfilePage from './pages/ProfilePage';
@@ -37,7 +38,9 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/aisathi" element={<AiPage />} />
             <Route path="/news" element={<NewsPage />} />
-            <Route path="/discussion" element={<Chat />} />
+            <Route path="/discussion" element={<DiscussionPage />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/experts" element={<ExpertsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </main>

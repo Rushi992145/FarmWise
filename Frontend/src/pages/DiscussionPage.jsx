@@ -1,479 +1,479 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaUser, FaSearch, FaHotjar, FaTrophy, FaClock, FaComments, FaShare, FaThumbsUp, FaTimes, FaImage, FaPlus } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { FaUser, FaPaperPlane, FaSearch, FaFilter, FaThumbsUp, FaReply, FaTrash, FaTags, FaSortAmountDown, FaExclamationCircle } from 'react-icons/fa';
 
-const CreatePostModal = ({ isOpen, onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    topic: "",
-    content: "",
-    tags: "",
-    image: null
-  });
+const DiscussionPage = () => {
+  const { user } = useSelector((state) => state.auth);
+  const [discussions, setDiscussions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTag, setSelectedTag] = useState('All');
+  const [selectedSort, setSelectedSort] = useState('recent');
+  const [newQuestion, setNewQuestion] = useState('');
+  const [newQuestionTags, setNewQuestionTags] = useState([]);
+  const [showNewQuestionForm, setShowNewQuestionForm] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [expandedDiscussion, setExpandedDiscussion] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      tags: formData.tags.split(',').map(tag => tag.trim()),
-      id: Date.now(),
-      author: "You",
-      role: "Farmer",
-      likes: 0,
-      shares: 0,
-      comments: [],
-      timestamp: "Just now"
-    });
-    onClose();
-  };
+  const tags = ['All', 'Crop Management', 'Soil Health', 'Pest Control', 'Organic Farming', 'Irrigation', 'Market Prices'];
+  const discussionEndRef = useRef(null);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    fetchDiscussions();
+  }, [selectedSort]);
+
+  const fetchDiscussions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await axios.get(`http://localhost:9000/api/farmwise/discussions?sort=${selectedSort}`, {
+        withCredentials: true
+      });
+      setDiscussions(response.data.data || []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch discussions:', error);
+      setError('Failed to load discussions. Please try again later.');
+      setLoading(false);
     }
   };
 
+  const handlePostQuestion = async (e) => {
+    e.preventDefault();
+    if (!newQuestion.trim()) return;
+
+    try {
+      const response = await axios.post('http://localhost:9000/api/farmwise/discussions', {
+        content: newQuestion,
+        tags: newQuestionTags.length > 0 ? newQuestionTags : ['General']
+      }, {
+        withCredentials: true
+      });
+
+      setDiscussions([response.data.data, ...discussions]);
+      setNewQuestion('');
+      setNewQuestionTags([]);
+      setShowNewQuestionForm(false);
+      // Scroll to the new discussion
+      discussionEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+      console.error('Failed to post question:', error);
+      setError('Failed to post question. Please try again.');
+    }
+  };
+
+  const handlePostReply = async (discussionId) => {
+    if (!replyContent.trim()) return;
+
+    try {
+      const response = await axios.post(`http://localhost:9000/api/farmwise/discussions/${discussionId}/replies`, {
+        content: replyContent
+      }, {
+        withCredentials: true
+      });
+
+      // Update the discussion with the new reply
+      setDiscussions(discussions.map(disc =>
+        disc._id === discussionId
+          ? { ...disc, replies: [...disc.replies, response.data.data] }
+          : disc
+      ));
+
+      setReplyContent('');
+      setReplyingTo(null);
+    } catch (error) {
+      console.error('Failed to post reply:', error);
+      setError('Failed to post reply. Please try again.');
+    }
+  };
+
+  const handleLike = async (discussionId) => {
+    if (!user) {
+      setError('Please log in to like discussions');
+      return;
+    }
+
+    try {
+      const response = await axios.patch(`http://localhost:9000/api/farmwise/discussions/${discussionId}/like`, {}, {
+        withCredentials: true
+      });
+
+      // Update the discussion likes
+      setDiscussions(discussions.map(disc =>
+        disc._id === discussionId ? response.data.data : disc
+      ));
+    } catch (error) {
+      console.error('Failed to like discussion:', error);
+      setError('Failed to like the discussion. Please try again.');
+    }
+  };
+
+  const handleTagSelection = (tag) => {
+    if (newQuestionTags.includes(tag)) {
+      setNewQuestionTags(newQuestionTags.filter(t => t !== tag));
+    } else {
+      setNewQuestionTags([...newQuestionTags, tag]);
+    }
+  };
+
+  const handleDeleteDiscussion = async (discussionId) => {
+    if (window.confirm('Are you sure you want to delete this discussion?')) {
+      try {
+        await axios.delete(`http://localhost:9000/api/farmwise/discussions/${discussionId}`, {
+          withCredentials: true
+        });
+        setDiscussions(discussions.filter(disc => disc._id !== discussionId));
+      } catch (error) {
+        console.error('Failed to delete discussion:', error);
+        setError('Failed to delete the discussion. Please try again.');
+      }
+    }
+  };
+
+  const filteredDiscussions = discussions.filter(discussion => {
+    const matchesSearch = discussion.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      discussion.author.username.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesTag = selectedTag === 'All' ||
+      discussion.tags.includes(selectedTag);
+
+    return matchesSearch && matchesTag;
+  });
+
   return (
-    <AnimatePresence>
-      {isOpen && (
+    <div className="min-h-screen bg-gray-50 pt-20 pb-10">
+      <div className="container mx-auto px-4">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 backdrop-blur bg-opacity-50 z-50 flex items-center justify-center p-4"
-          onClick={onClose}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-10"
         >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800">Create Discussion</h2>
-              <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-                <FaTimes />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 mb-2">Topic</label>
-                <input
-                  type="text"
-                  value={formData.topic}
-                  onChange={e => setFormData(prev => ({ ...prev, topic: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="What would you like to discuss?"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-2">Content</label>
-                <textarea
-                  value={formData.content}
-                  onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[150px]"
-                  placeholder="Describe your question or topic in detail..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-2">Tags (comma-separated)</label>
-                <input
-                  type="text"
-                  value={formData.tags}
-                  onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="e.g., Organic, Fertilizers, Wheat"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-2">Image (optional)</label>
-                <div className="flex items-center space-x-4">
-                  <label className="cursor-pointer flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50">
-                    <FaImage className="text-gray-500" />
-                    <span>Choose Image</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
-                  {formData.image && (
-                    <div className="relative">
-                      <img
-                        src={formData.image}
-                        alt="Preview"
-                        className="h-20 w-20 object-cover rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, image: null }))}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-xs"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <motion.button
-                  type="button"
-                  onClick={onClose}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  type="submit"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700"
-                >
-                  Create Post
-                </motion.button>
-              </div>
-            </form>
-          </motion.div>
+          <h1 className="text-4xl font-bold text-green-700 mb-4">Farmer Discussion Forum</h1>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            Connect with other farmers and experts. Ask questions, share knowledge, and find solutions to farming challenges.
+          </p>
         </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
 
-const DiscussionPage = () => {
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      topic: "Organic Fertilizers",
-      author: "Rahul Sharma",
-      role: "Farmer",
-      content: "Which organic fertilizers work best for wheat crops? I've been trying different combinations but haven't found the optimal solution yet. Looking for expert advice and fellow farmers' experiences.",
-      likes: 24,
-      shares: 8,
-      image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449",
-      comments: [
-        {
-          user: "Dr. Mehta",
-          role: "Expert",
-          text: "Compost and vermicompost are great options! They improve soil structure and provide balanced nutrition.",
-          likes: 12,
-          timestamp: "2h ago"
-        },
-        {
-          user: "Amit Kumar",
-          role: "Farmer",
-          text: "I use cow manure, works great! Mix it with some neem cake for better results.",
-          likes: 8,
-          timestamp: "1h ago"
-        },
-      ],
-      timestamp: "5h ago",
-      tags: ["Organic", "Fertilizers", "Wheat"]
-    },
-    {
-      id: 2,
-      topic: "Pest Control",
-      author: "Pooja Reddy",
-      role: "Farmer",
-      content: "How do you naturally control pests in tomato farming? I'm losing about 20% of my crop to pests and want to try organic solutions before resorting to chemicals.",
-      likes: 31,
-      shares: 12,
-      image: "https://images.unsplash.com/photo-1592491890705-ef26fa8d2f47",
-      comments: [
-        {
-          user: "Dr. Singh",
-          role: "Expert",
-          text: "Neem oil spray is highly effective! Mix 2-3ml per liter of water and spray weekly.",
-          likes: 15,
-          timestamp: "3h ago"
-        },
-      ],
-      timestamp: "8h ago",
-      tags: ["Pest Control", "Organic", "Tomatoes"]
-    },
-  ]);
-
-  const [newComment, setNewComment] = useState("");
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [activeFilter, setActiveFilter] = useState("trending");
-  const [search, setSearch] = useState("");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  const addComment = (postId) => {
-    if (!newComment.trim()) return;
-    const updatedPosts = posts.map((post) =>
-      post.id === postId
-        ? {
-          ...post,
-          comments: [
-            ...post.comments,
-            {
-              user: "You",
-              role: "Farmer",
-              text: newComment,
-              likes: 0,
-              timestamp: "Just now"
-            }
-          ]
-        }
-        : post
-    );
-    setPosts(updatedPosts);
-    setNewComment("");
-  };
-
-  const handleCreatePost = (newPost) => {
-    setPosts(prevPosts => [newPost, ...prevPosts]);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      <div className="container mx-auto p-6">
-        <div className="flex flex-col md:flex-row gap-6">
-          <motion.aside
-            initial={{ x: -50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="w-full md:w-1/4"
+        {/* Error Message */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mb-6 bg-red-50 text-red-700 p-4 rounded-lg flex items-center gap-3"
           >
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsCreateModalOpen(true)}
-              className="w-full mb-4 bg-green-600 text-white p-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-green-700"
+            <FaExclamationCircle className="text-xl" />
+            <p>{error}</p>
+            <button
+              className="ml-auto text-red-500"
+              onClick={() => setError(null)}
             >
-              <FaPlus />
-              <span>Create Discussion</span>
-            </motion.button>
+              Close
+            </button>
+          </motion.div>
+        )}
 
-            <div className="bg-white p-4 rounded-2xl shadow-md sticky top-24">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">Filters</h2>
-              <ul className="space-y-2">
-                {[
-                  { icon: <FaHotjar />, label: "Trending", value: "trending" },
-                  { icon: <FaTrophy />, label: "Most Helpful", value: "helpful" },
-                  { icon: <FaClock />, label: "Recent", value: "recent" }
-                ].map((filter) => (
-                  <motion.li
-                    key={filter.value}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setActiveFilter(filter.value)}
-                    className={`flex items-center space-x-2 p-2 rounded-lg cursor-pointer ${activeFilter === filter.value
-                      ? 'bg-green-100 text-green-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                  >
-                    {filter.icon}
-                    <span>{filter.label}</span>
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
-          </motion.aside>
-
-          <motion.main
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="w-full md:w-2/4"
-          >
-            <div className="relative mb-6">
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full md:w-1/2">
               <input
                 type="text"
                 placeholder="Search discussions..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full p-3 pl-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
-              <FaSearch className="absolute left-4 top-3.5 text-gray-400" />
+              <FaSearch className="absolute left-3 top-3.5 text-gray-400" />
             </div>
 
-            <div className="space-y-6">
-              {posts.map((post) => (
-                <motion.div
-                  key={post.id}
-                  whileHover={{ scale: 1.01 }}
-                  className="bg-white rounded-2xl shadow-md overflow-hidden"
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <div className="flex items-center gap-2">
+                <FaFilter className="text-gray-500" />
+                <select
+                  value={selectedTag}
+                  onChange={(e) => setSelectedTag(e.target.value)}
+                  className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
-                  {post.image && (
-                    <img
-                      src={post.image}
-                      alt={post.topic}
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                  <div className="p-6">
-                    <div className="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-                      <div className="flex items-center space-x-2">
-                        <FaUser className={post.role === "Expert" ? "text-yellow-500" : "text-green-500"} />
-                        <span className="font-medium">{post.author}</span>
-                        {post.role === "Expert" && (
-                          <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
-                            Expert
-                          </span>
-                        )}
+                  {tags.map(tag => (
+                    <option key={tag} value={tag}>{tag}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <FaSortAmountDown className="text-gray-500" />
+                <select
+                  value={selectedSort}
+                  onChange={(e) => setSelectedSort(e.target.value)}
+                  className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="recent">Most Recent</option>
+                  <option value="likes">Most Liked</option>
+                  <option value="replies">Most Replies</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ask Question Section */}
+        <div className="mb-8">
+          {user ? (
+            <div>
+              <button
+                onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
+                className="bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center gap-2"
+              >
+                {showNewQuestionForm ? 'Cancel' : 'Ask a Question'}
+              </button>
+
+              {showNewQuestionForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-white rounded-xl shadow-md p-6 mt-4"
+                >
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Ask a Question</h3>
+                  <form onSubmit={handlePostQuestion} className="space-y-4">
+                    <div>
+                      <textarea
+                        value={newQuestion}
+                        onChange={(e) => setNewQuestion(e.target.value)}
+                        placeholder="Describe your farming question or issue in detail..."
+                        rows="4"
+                        required
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <FaTags className="text-green-500" />
+                        Select Tags (Optional)
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {tags.filter(tag => tag !== 'All').map(tag => (
+                          <button
+                            type="button"
+                            key={tag}
+                            onClick={() => handleTagSelection(tag)}
+                            className={`px-3 py-1 rounded-full text-sm transition-colors ${newQuestionTags.includes(tag)
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
                       </div>
-                      <span>•</span>
-                      <span>{post.timestamp}</span>
                     </div>
 
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{post.topic}</h3>
-                    <p className="text-gray-600 mb-4">{post.content}</p>
+                    <button
+                      type="submit"
+                      className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                    >
+                      Post Question
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-yellow-50 p-4 rounded-lg text-center">
+              <p className="text-yellow-700 mb-2">Please log in to post questions and participate in discussions</p>
+              <Link to="/login" className="text-green-600 font-medium hover:underline">
+                Log in now
+              </Link>
+            </div>
+          )}
+        </div>
 
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {post.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+        {/* Discussions List */}
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
+            <p className="mt-4 text-xl text-green-700">Loading discussions...</p>
+          </div>
+        ) : filteredDiscussions.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl shadow-md">
+            <p className="text-xl text-gray-600">No discussions found</p>
+            <p className="text-gray-500 mt-2">Be the first to start a discussion!</p>
+          </div>
+        ) : (
+          <div className="space-y-6" ref={discussionEndRef}>
+            {filteredDiscussions.map((discussion) => (
+              <motion.div
+                key={discussion._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-xl shadow-md overflow-hidden"
+              >
+                <div className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-green-100 p-3 rounded-full mt-1">
+                      <FaUser className={discussion.author.role === 'expert' ? "text-blue-600" : "text-green-600"} />
                     </div>
-
-                    <div className="border-t pt-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-6 text-gray-500">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            className="flex items-center space-x-2"
-                          >
-                            <FaThumbsUp />
-                            <span>{post.likes}</span>
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            className="flex items-center space-x-2"
-                          >
-                            <FaComments />
-                            <span>{post.comments.length}</span>
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            className="flex items-center space-x-2"
-                          >
-                            <FaShare />
-                            <span>{post.shares}</span>
-                          </motion.button>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">
+                            {discussion.author.username}
+                            {discussion.author.role === 'expert' && (
+                              <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">Expert</span>
+                            )}
+                          </h3>
+                          <p className="text-sm text-gray-500">{new Date(discussion.createdAt).toLocaleString()}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          {discussion.tags.map((tag, index) => (
+                            <span key={index} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                              {tag}
+                            </span>
+                          ))}
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        {post.comments.map((comment, index) => (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            key={index}
-                            className="bg-gray-50 rounded-xl p-4"
+                      <div className="mt-3">
+                        <p className="text-gray-700">
+                          {expandedDiscussion === discussion._id
+                            ? discussion.content
+                            : discussion.content.length > 300
+                              ? `${discussion.content.substring(0, 300)}...`
+                              : discussion.content
+                          }
+                        </p>
+                        {discussion.content.length > 300 && (
+                          <button
+                            onClick={() => setExpandedDiscussion(expandedDiscussion === discussion._id ? null : discussion._id)}
+                            className="text-green-600 text-sm mt-2 hover:underline"
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center space-x-2">
-                                <FaUser className={comment.role === "Expert" ? "text-yellow-500" : "text-green-500"} />
-                                <span className="font-medium">{comment.user}</span>
-                                {comment.role === "Expert" && (
-                                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
-                                    Expert
-                                  </span>
-                                )}
-                                <span className="text-gray-500 text-sm">{comment.timestamp}</span>
-                              </div>
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                className="flex items-center space-x-1 text-gray-500"
-                              >
-                                <FaThumbsUp className="text-sm" />
-                                <span className="text-sm">{comment.likes}</span>
-                              </motion.button>
-                            </div>
-                            <p className="text-gray-700">{comment.text}</p>
-                          </motion.div>
-                        ))}
-                      </div>
-
-                      <div className="mt-4 flex space-x-2">
-                        <input
-                          type="text"
-                          placeholder="Add a comment..."
-                          value={selectedPost === post.id ? newComment : ""}
-                          onChange={(e) => setNewComment(e.target.value)}
-                          onFocus={() => setSelectedPost(post.id)}
-                          className="flex-grow p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => addComment(post.id)}
-                          className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700"
-                        >
-                          Comment
-                        </motion.button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.main>
-
-          <motion.aside
-            initial={{ x: 50, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="w-full md:w-1/4"
-          >
-            <div className="bg-white p-4 rounded-2xl shadow-md sticky top-24">
-              <h2 className="text-xl font-semibold mb-4">Top Contributors</h2>
-              <div className="space-y-4">
-                {[
-                  { name: "Dr. Mehta", role: "Expert", posts: 156, likes: 1.2 },
-                  { name: "Amit Kumar", role: "Farmer", posts: 89, likes: 856 },
-                  { name: "Dr. Singh", role: "Expert", posts: 134, likes: 1.1 },
-                ].map((contributor, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
-                  >
-                    <FaUser className={contributor.role === "Expert" ? "text-yellow-500" : "text-green-500"} />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">{contributor.name}</span>
-                        {contributor.role === "Expert" && (
-                          <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
-                            Expert
-                          </span>
+                            {expandedDiscussion === discussion._id ? 'Show less' : 'Read more'}
+                          </button>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {contributor.posts} posts • {contributor.likes} likes
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => handleLike(discussion._id)}
+                            className={`flex items-center gap-1 text-sm ${user && discussion.likes.includes(user._id)
+                                ? 'text-green-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                              }`}
+                            disabled={!user}
+                          >
+                            <FaThumbsUp />
+                            <span>{discussion.likes?.length || 0}</span>
+                          </button>
+
+                          <button
+                            onClick={() => setReplyingTo(replyingTo === discussion._id ? null : discussion._id)}
+                            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+                            disabled={!user}
+                          >
+                            <FaReply />
+                            <span>Reply ({discussion.replies?.length || 0})</span>
+                          </button>
+                        </div>
+
+                        {user && discussion.author._id === user._id && (
+                          <button
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => handleDeleteDiscussion(discussion._id)}
+                          >
+                            <FaTrash />
+                          </button>
+                        )}
                       </div>
+
+                      {/* Replies */}
+                      {(discussion.replies?.length > 0 || replyingTo === discussion._id) && (
+                        <div className="mt-4 pl-6 border-l-2 border-gray-100">
+                          {discussion.replies?.map((reply) => (
+                            <div key={reply._id} className="mb-4 last:mb-0">
+                              <div className="flex items-start gap-3">
+                                <div className={`p-2 rounded-full ${reply.author.role === 'expert' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                                  <FaUser className={reply.author.role === 'expert' ? "text-blue-600 text-sm" : "text-gray-600 text-sm"} />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-gray-800">
+                                      {reply.author.username}
+                                      {reply.author.role === 'expert' && (
+                                        <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">Expert</span>
+                                      )}
+                                    </h4>
+                                    <span className="text-xs text-gray-500">{new Date(reply.createdAt).toLocaleString()}</span>
+                                  </div>
+                                  <p className="text-gray-700 mt-1">{reply.content}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Reply Form */}
+                          {replyingTo === discussion._id && user && (
+                            <div className="mt-4">
+                              <div className="flex flex-col gap-2">
+                                <textarea
+                                  value={replyContent}
+                                  onChange={(e) => setReplyContent(e.target.value)}
+                                  placeholder="Write your reply..."
+                                  rows="2"
+                                  className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                />
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={() => setReplyingTo(null)}
+                                    className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handlePostReply(discussion._id)}
+                                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg"
+                                  >
+                                    Reply
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </motion.aside>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Help Button */}
+        <div className="fixed bottom-8 right-8">
+          <Link to="/experts">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-green-500 hover:bg-green-600 text-white font-medium p-4 rounded-full shadow-lg"
+            >
+              <span className="sr-only">Get Expert Help</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </motion.button>
+          </Link>
         </div>
       </div>
-
-      <CreatePostModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreatePost}
-      />
     </div>
   );
 };

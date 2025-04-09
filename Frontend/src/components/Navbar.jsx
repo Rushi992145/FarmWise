@@ -33,10 +33,11 @@ const Navbar = () => {
     const navItems = [
         { name: "Home", path: "/" },
         { name: "Blog", path: "/blog" },
+        // { name: "Discussion", path: "/discussion" },
+        { name: "Hire Expert", path: "/experts" },
         { name: "AI Sathi", path: "/aisathi", highlight: true },
-        { name: "Discussion", path: "/discussion" },
         { name: "News", path: "/news" },
-        { name: "About Us", path: "/about-us" }
+        // { name: "About Us", path: "/about-us" }
     ];
 
     const navItemVariants = {
@@ -87,7 +88,7 @@ const Navbar = () => {
 
     return (
         <motion.nav
-            className='fixed top-0 w-full flex items-center justify-between p-4 transition-all duration-300 z-50 shadow-md backdrop-blur'
+            className={`fixed top-0 w-full flex items-center justify-between p-4 transition-all duration-300 z-50 shadow-md backdrop-blur ${navBg ? 'bg-white bg-opacity-90' : 'bg-white bg-opacity-80'}`}
         >
             <Link to="/">
                 <motion.div
@@ -179,14 +180,14 @@ const Navbar = () => {
             >
                 {user ? (
                     <div className="flex items-center cursor-pointer gap-2" onClick={toggleDropdown}>
-                        <FaUserCircle size={30} />
+                        <FaUserCircle size={30} className="text-green-600" />
                         <span className="text-gray-800 ml-2 hidden md:inline">
                             {user?.username || user?.userName}
                         </span>
                         <AnimatePresence>
                             {dropdownOpen && (
                                 <motion.div
-                                    className="absolute right-0 mt-3 w-40 bg-white border border-gray-200 top-10 shadow-lg rounded-lg"
+                                    className="absolute right-0 mt-3 w-48 bg-white border border-gray-200 top-10 shadow-lg rounded-lg"
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
@@ -200,6 +201,24 @@ const Navbar = () => {
                                             Profile
                                         </motion.div>
                                     </Link>
+                                    <Link to="/chat">
+                                        <motion.div
+                                            className="block px-4 py-2 text-gray-800 hover:bg-green-50"
+                                            whileHover={{ scale: 1.05, backgroundColor: "rgba(34, 197, 94, 0.1)" }}
+                                        >
+                                            My Chats
+                                        </motion.div>
+                                    </Link>
+                                    {user.role === 'expert' && (
+                                        <Link to="/expert-dashboard">
+                                            <motion.div
+                                                className="block px-4 py-2 text-gray-800 hover:bg-green-50"
+                                                whileHover={{ scale: 1.05, backgroundColor: "rgba(34, 197, 94, 0.1)" }}
+                                            >
+                                                Expert Dashboard
+                                            </motion.div>
+                                        </Link>
+                                    )}
                                     <Link to="#" onClick={handleLogout}>
                                         <motion.div
                                             className="block px-4 py-2 text-gray-800 hover:bg-green-50 rounded-b-lg"
