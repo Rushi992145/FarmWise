@@ -38,7 +38,7 @@ function App() {
             <Route path="/blog" element={<Blog />} />
             <Route path="/aisathi" element={<AiPage />} />
             <Route path="/news" element={<NewsPage />} />
-            <Route path="/discussion" element={<DiscussionPage />} />
+            <Route path="/discussion" element={<Chat />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/experts" element={<ExpertsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
