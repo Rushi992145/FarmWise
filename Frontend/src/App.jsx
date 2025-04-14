@@ -44,7 +44,6 @@ function App() {
             <Route path="/experts" element={<ExpertsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/expert-verification" element={<AdminDashboard />} />
           </Routes>
         </main>
         <Footer />

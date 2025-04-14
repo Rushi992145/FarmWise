@@ -34,7 +34,7 @@ const Navbar = () => {
         { name: "Home", path: "/" },
         { name: "Blog", path: "/blog" },
         { name: "Discussion", path: "/discussion" },
-        ...(user?.userType !== 'expert' ? [{ name: "Hire Expert", path: "/experts" }] : []),
+        { name: "Hire Expert", path: "/experts" },
         { name: "AI Sathi", path: "/aisathi", highlight: true },
         { name: "News", path: "/news" },
         // { name: "About Us", path: "/about-us" }
@@ -130,31 +130,6 @@ const Navbar = () => {
                         />
                     </motion.div>
                 ))}
-
-                {/* Make the Expert Verification Dashboard available to all users */}
-                <motion.div
-                    className="relative"
-                    initial="initial"
-                    whileHover="hover"
-                >
-                    <Link to="/admin/dashboard">
-                        <motion.div
-                            className="px-4 py-2 rounded-lg block transition-colors duration-200 text-gray-800 hover:bg-green-50"
-                            variants={navItemVariants}
-                            initial="hidden"
-                            animate="visible"
-                            custom={navItems.length}
-                        >
-                            Verification Dashboard
-                        </motion.div>
-                    </Link>
-                    <motion.div
-                        variants={underlineVariants}
-                        initial="initial"
-                        animate={location.pathname === "/admin/dashboard" ? "active" : "initial"}
-                        className="absolute bottom-0 h-[2px] bg-green-500"
-                    />
-                </motion.div>
             </div>
 
             {/* Mobile Menu Button */}
@@ -193,20 +168,6 @@ const Navbar = () => {
                                 </motion.div>
                             </Link>
                         ))}
-                        <Link
-                            to="/admin/dashboard"
-                            onClick={() => setMobileMenuOpen(false)}
-                        >
-                            <motion.div
-                                className="block px-6 py-3 text-gray-800 hover:bg-green-50"
-                                variants={navItemVariants}
-                                initial="hidden"
-                                animate="visible"
-                                custom={navItems.length}
-                            >
-                                Verification Dashboard
-                            </motion.div>
-                        </Link>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -240,22 +201,10 @@ const Navbar = () => {
                                             Profile
                                         </motion.div>
                                     </Link>
-                                    <Link to="/chat">
-                                        <motion.div
-                                            className="block px-4 py-2 text-gray-800 hover:bg-green-50"
-                                            whileHover={{ scale: 1.05, backgroundColor: "rgba(34, 197, 94, 0.1)" }}
-                                        >
-                                            My Chats
-                                        </motion.div>
-                                    </Link>
-                                    {user.role === 'expert' && (
-                                        <Link to="/expert-dashboard">
-                                            <motion.div
-                                                className="block px-4 py-2 text-gray-800 hover:bg-green-50"
-                                                whileHover={{ scale: 1.05, backgroundColor: "rgba(34, 197, 94, 0.1)" }}
-                                            >
-                                                Expert Dashboard
-                                            </motion.div>
+
+                                    {user?.userType === 'admin' && (
+                                        <Link to="/admin/dashboard" className="text-green-600 px-4 py-2 hover:text-green-800">
+                                            Admin Dashboard
                                         </Link>
                                     )}
                                     <Link to="#" onClick={handleLogout}>
@@ -287,6 +236,8 @@ const Navbar = () => {
                     </div>
                 )}
             </motion.div>
+
+
         </motion.nav>
     );
 };

@@ -277,6 +277,26 @@ const updateUserProfileImage = asyncHandler(async(res,req) => {
 })
 
 
+export const getAllFarmers = asyncHandler(async(req,res) => {
+    try {
+        const farmers = await User.find({userType:"farmer"}).select("-password -refreshToken")
+        if(!farmers) {
+            return res.status(404).json({message:"No farmers found"})
+        }
+
+        return res.status(200).json(
+            new ApiResponse(200,farmers,"Farmers fetched successfully")
+        )
+    } catch (error) {
+        return res
+        .status(5000)
+        .json(
+           {message:"Something went wrong while fetching farmers"}
+        )
+    }
+});
+
+
 export {
     registerUser,
     loginUser,

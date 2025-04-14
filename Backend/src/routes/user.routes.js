@@ -8,7 +8,8 @@ import {registerUser,
     getCurrentUser,
     changeCurrentPassword,
     updateAccountDetails,
-    updateUserProfileImage,} from "../controllers/user.controller.js"
+    updateUserProfileImage,
+    getAllFarmers,} from "../controllers/user.controller.js"
     const router = Router();
     router.route("/register").post(
         upload.fields([
@@ -26,4 +27,5 @@ import {registerUser,
     router.route("/current-user").get(varifyJWT,getCurrentUser);
     router.route("/update-account").patch(varifyJWT,updateAccountDetails);
     router.route("/profile-image").patch(varifyJWT,upload.single("profileImage"),updateUserProfileImage);
+    router.route("/getallfarmers").get(getAllFarmers);
     export default router;

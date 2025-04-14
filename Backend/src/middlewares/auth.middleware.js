@@ -24,11 +24,4 @@ export const varifyJWT = asyncHandler(async (req, _, next) => {
         throw new ApiError(401, error?.message || "Invalid access token");
     }
 
-})
-
-// export const isAdmin = asyncHandler(async (req, res, next) => {
-//     if (req.user.userType !== "admin") {
-//         throw new ApiError(403, "You do not have permission to access this resource");
-//     }
-//     next();
-// }); 
+}) 
