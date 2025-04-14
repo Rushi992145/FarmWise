@@ -84,7 +84,6 @@ const registerUser = asyncHandler(async(req,res) => {
 })
 
 const loginUser = asyncHandler(async(req,res) => {
-
     const {email,username,password} = req.body
 
     if(!username && !email) {
@@ -103,14 +102,29 @@ const loginUser = asyncHandler(async(req,res) => {
     if(!isPasswordValid) {
         throw new ApiError(401,"Invalid user credential");
     }
-    const {accessToken,refreshToken} =  await generateAccessAndRefreshTokens(user._id);
 
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+    const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(user._id);
+
+    let loggedInUser = await User.findById(user._id).select("-password -refreshToken").lean();
+
+    // If user is an expert, add verification status from Expert model
+    if (loggedInUser.userType === 'expert') {
+        const expert = await Expert.findOne({ userId: loggedInUser._id });
+        if (expert) {
+            loggedInUser = {
+                ...loggedInUser,
+                verified: expert.verified
+            };
+        }
+    }
 
     const options = {
         httpOnly: true,
         secure: true
     }
+
+    console.log("Sending user data:", loggedInUser); // Debug log
+
     return res
     .status(200)
     .cookie("accessToken",accessToken,options)

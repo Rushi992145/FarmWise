@@ -16,6 +16,20 @@ const Blog = () => {
   const { user } = useSelector((state) => state.auth);
   const { accessToken } = useSelector((state) => state.auth);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("Current user in BlogPage:", user);
+  }, [user]);
+
+  const isVerifiedExpert = user?.userType === 'expert' && user?.verified === true;
+
+  // Debug logging for verification status
+  useEffect(() => {
+    console.log("isVerifiedExpert:", isVerifiedExpert);
+    console.log("User type:", user?.userType);
+    console.log("Verified status:", user?.verified);
+  }, [user, isVerifiedExpert]);
+
   useEffect(() => {
     fetchBlogs();
   }, []);
@@ -131,11 +145,11 @@ const Blog = () => {
             animate={{ y: 0, opacity: 1 }}
             className="w-full md:w-2/4"
           >
-            {user && (
+            {isVerifiedExpert && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="mb-4 flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg"
+                className="mb-4 flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 transition-colors"
                 onClick={() => setShowCreateModal(true)}
               >
                 <FaPlus /> Create New Blog

@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { FaUser, FaPaperPlane, FaSearch, FaFilter, FaThumbsUp, FaReply, FaTrash, FaTags, FaSortAmountDown, FaExclamationCircle } from 'react-icons/fa';
+import { FaUser, FaPaperPlane, FaSearch, FaFilter, FaThumbsUp, FaReply, FaTrash, FaTags, FaSortAmountDown, FaExclamationCircle, FaTimes, FaComments, FaArrowRight } from 'react-icons/fa';
+import io from 'socket.io-client';
 
 const DiscussionPage = () => {
-  const { user } = useSelector((state) => state.auth);
+  const { user, accessToken } = useSelector((state) => state.auth);
   const [discussions, setDiscussions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,9 +20,37 @@ const DiscussionPage = () => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [expandedDiscussion, setExpandedDiscussion] = useState(null);
   const [error, setError] = useState(null);
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const timeoutRef = useRef(null);
+  const [socket, setSocket] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const messageTimeoutRef = useRef(null);
 
   const tags = ['All', 'Crop Management', 'Soil Health', 'Pest Control', 'Organic Farming', 'Irrigation', 'Market Prices'];
   const discussionEndRef = useRef(null);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100
+      }
+    }
+  };
 
   useEffect(() => {
     fetchDiscussions();
@@ -68,30 +97,96 @@ const DiscussionPage = () => {
     }
   };
 
-  const handlePostReply = async (discussionId) => {
-    if (!replyContent.trim()) return;
+  // Initialize socket connection
+  useEffect(() => {
+    if (!user) return;
+
+    const newSocket = io('http://localhost:9000', {
+      auth: {
+        userId: user._id,
+        token: accessToken
+      }
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Connected to socket');
+      setIsConnected(true);
+    });
+
+    newSocket.on('disconnect', () => {
+      setIsConnected(false);
+    });
+
+    newSocket.on('receiveMessage', (message) => {
+      setDiscussions(prevDiscussions => 
+        prevDiscussions.map(disc =>
+          disc._id === message.threadId
+            ? {
+                ...disc,
+                replies: [...(disc.replies || []), message]
+              }
+            : disc
+        )
+      );
+    });
+
+    newSocket.on('messageSent', ({ success, messageId }) => {
+      if (success) {
+        setReplyContent('');
+        setReplyingTo(null);
+      }
+    });
+
+    newSocket.on('messageError', (error) => {
+      setError(error.message);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+    };
+  }, [user, accessToken]);
+
+  // Clear message timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handlePostReply = useCallback(async (discussionId) => {
+    if (!replyContent.trim() || !isConnected || !socket) return;
+
+    // Prevent duplicate submissions
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
 
     try {
-      const response = await axios.post(`http://localhost:9000/api/farmwise/discussions/${discussionId}/replies`, {
-        content: replyContent
-      }, {
-        withCredentials: true
+      setIsSubmitting(true);
+
+      // Emit the message through socket
+      socket.emit('sendMessage', {
+        message: replyContent,
+        threadId: discussionId
       });
 
-      // Update the discussion with the new reply
-      setDiscussions(discussions.map(disc =>
-        disc._id === discussionId
-          ? { ...disc, replies: [...disc.replies, response.data.data] }
-          : disc
-      ));
+      // Set a timeout to clear the form if no response is received
+      messageTimeoutRef.current = setTimeout(() => {
+        setReplyContent('');
+        setReplyingTo(null);
+        setIsSubmitting(false);
+      }, 5000);
 
-      setReplyContent('');
-      setReplyingTo(null);
     } catch (error) {
       console.error('Failed to post reply:', error);
       setError('Failed to post reply. Please try again.');
+      setIsSubmitting(false);
     }
-  };
+  }, [replyContent, isConnected, socket]);
 
   const handleLike = async (discussionId) => {
     if (!user) {
@@ -147,60 +242,69 @@ const DiscussionPage = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 pb-10">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 pt-20 pb-10">
+      <div className="container mx-auto px-4 max-w-6xl">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-10"
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="text-center mb-12"
         >
-          <h1 className="text-4xl font-bold text-green-700 mb-4">Farmer Discussion Forum</h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Connect with other farmers and experts. Ask questions, share knowledge, and find solutions to farming challenges.
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent mb-6">
+            Farmer Discussion Forum
+          </h1>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Connect with other farmers and experts. Share knowledge, ask questions, and find innovative solutions to farming challenges.
           </p>
         </motion.div>
 
         {/* Error Message */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-6 bg-red-50 text-red-700 p-4 rounded-lg flex items-center gap-3"
-          >
-            <FaExclamationCircle className="text-xl" />
-            <p>{error}</p>
-            <button
-              className="ml-auto text-red-500"
-              onClick={() => setError(null)}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-8 bg-red-50 text-red-700 p-6 rounded-2xl flex items-center gap-3 shadow-sm border border-red-100"
             >
-              Close
-            </button>
-          </motion.div>
-        )}
+              <FaExclamationCircle className="text-2xl" />
+              <p className="font-medium">{error}</p>
+              <button
+                className="ml-auto text-red-500 hover:text-red-700 transition-colors"
+                onClick={() => setError(null)}
+              >
+                Close
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Search and Filter Bar */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-1/2">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="bg-white rounded-2xl shadow-lg p-8 mb-10 backdrop-blur-sm bg-white/90"
+        >
+          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+            <div className="relative w-full md:w-1/2 group">
               <input
                 type="text"
                 placeholder="Search discussions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full p-4 pl-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50 group-hover:bg-white"
               />
-              <FaSearch className="absolute left-3 top-3.5 text-gray-400" />
+              <FaSearch className="absolute left-4 top-4 text-gray-400 group-hover:text-green-500 transition-colors duration-300" />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <div className="flex items-center gap-2">
-                <FaFilter className="text-gray-500" />
+            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+              <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl">
+                <FaFilter className="text-green-600" />
                 <select
                   value={selectedTag}
                   onChange={(e) => setSelectedTag(e.target.value)}
-                  className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="p-2 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700"
                 >
                   {tags.map(tag => (
                     <option key={tag} value={tag}>{tag}</option>
@@ -208,12 +312,12 @@ const DiscussionPage = () => {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <FaSortAmountDown className="text-gray-500" />
+              <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl">
+                <FaSortAmountDown className="text-green-600" />
                 <select
                   value={selectedSort}
                   onChange={(e) => setSelectedSort(e.target.value)}
-                  className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="p-2 bg-transparent border-none focus:outline-none focus:ring-0 text-gray-700"
                 >
                   <option value="recent">Most Recent</option>
                   <option value="likes">Most Liked</option>
@@ -222,100 +326,145 @@ const DiscussionPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Ask Question Section */}
-        <div className="mb-8">
+        <div className="mb-10">
           {user ? (
-            <div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+            >
               <button
                 onClick={() => setShowNewQuestionForm(!showNewQuestionForm)}
-                className="bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center gap-2"
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-3"
               >
-                {showNewQuestionForm ? 'Cancel' : 'Ask a Question'}
+                {showNewQuestionForm ? (
+                  <>
+                    <FaTimes className="text-xl" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <FaPaperPlane className="text-xl" />
+                    Ask a Question
+                  </>
+                )}
               </button>
 
-              {showNewQuestionForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-white rounded-xl shadow-md p-6 mt-4"
-                >
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Ask a Question</h3>
-                  <form onSubmit={handlePostQuestion} className="space-y-4">
-                    <div>
-                      <textarea
-                        value={newQuestion}
-                        onChange={(e) => setNewQuestion(e.target.value)}
-                        placeholder="Describe your farming question or issue in detail..."
-                        rows="4"
-                        required
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        <FaTags className="text-green-500" />
-                        Select Tags (Optional)
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {tags.filter(tag => tag !== 'All').map(tag => (
-                          <button
-                            type="button"
-                            key={tag}
-                            onClick={() => handleTagSelection(tag)}
-                            className={`px-3 py-1 rounded-full text-sm transition-colors ${newQuestionTags.includes(tag)
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                              }`}
-                          >
-                            {tag}
-                          </button>
-                        ))}
+              <AnimatePresence>
+                {showNewQuestionForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-white rounded-2xl shadow-lg p-8 mt-6"
+                  >
+                    <h3 className="text-2xl font-semibold text-gray-800 mb-6">Ask a Question</h3>
+                    <form onSubmit={handlePostQuestion} className="space-y-6">
+                      <div>
+                        <textarea
+                          value={newQuestion}
+                          onChange={(e) => setNewQuestion(e.target.value)}
+                          placeholder="Describe your farming question or issue in detail..."
+                          rows="4"
+                          required
+                          className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 bg-gray-50"
+                        />
                       </div>
-                    </div>
 
-                    <button
-                      type="submit"
-                      className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                    >
-                      Post Question
-                    </button>
-                  </form>
-                </motion.div>
-              )}
-            </div>
+                      <div>
+                        <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+                          <FaTags className="text-green-500" />
+                          Select Tags (Optional)
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {tags.filter(tag => tag !== 'All').map(tag => (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              type="button"
+                              key={tag}
+                              onClick={() => handleTagSelection(tag)}
+                              className={`px-4 py-2 rounded-lg text-sm transition-all duration-300 ${
+                                newQuestionTags.includes(tag)
+                                  ? 'bg-green-500 text-white shadow-md'
+                                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              }`}
+                            >
+                              {tag}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="submit"
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg"
+                      >
+                        Post Question
+                      </motion.button>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           ) : (
-            <div className="bg-yellow-50 p-4 rounded-lg text-center">
-              <p className="text-yellow-700 mb-2">Please log in to post questions and participate in discussions</p>
-              <Link to="/login" className="text-green-600 font-medium hover:underline">
-                Log in now
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-yellow-50 p-6 rounded-2xl text-center border border-yellow-100"
+            >
+              <p className="text-yellow-700 mb-3 font-medium">Please log in to post questions and participate in discussions</p>
+              <Link
+                to="/login"
+                className="text-green-600 font-semibold hover:text-green-700 transition-colors inline-flex items-center gap-2"
+              >
+                Log in now <FaArrowRight className="text-sm" />
               </Link>
-            </div>
+            </motion.div>
           )}
         </div>
 
         {/* Discussions List */}
         {loading ? (
-          <div className="text-center py-20">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
-            <p className="mt-4 text-xl text-green-700">Loading discussions...</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20"
+          >
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent"></div>
+            <p className="mt-6 text-xl text-green-700 font-medium">Loading discussions...</p>
+          </motion.div>
         ) : filteredDiscussions.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl shadow-md">
-            <p className="text-xl text-gray-600">No discussions found</p>
-            <p className="text-gray-500 mt-2">Be the first to start a discussion!</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-20 bg-white rounded-2xl shadow-lg"
+          >
+            <div className="text-green-500 mb-4">
+              <FaComments className="text-6xl mx-auto" />
+            </div>
+            <p className="text-2xl text-gray-600 mb-2">No discussions found</p>
+            <p className="text-gray-500">Be the first to start a discussion!</p>
+          </motion.div>
         ) : (
-          <div className="space-y-6" ref={discussionEndRef}>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-8"
+            ref={discussionEndRef}
+          >
             {filteredDiscussions.map((discussion) => (
               <motion.div
                 key={discussion._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden"
+                variants={itemVariants}
+                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
               >
                 <div className="p-6">
                   <div className="flex items-start gap-4">
@@ -430,19 +579,29 @@ const DiscussionPage = () => {
                                   placeholder="Write your reply..."
                                   rows="2"
                                   className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                  disabled={isSubmitting}
                                 />
                                 <div className="flex justify-end space-x-2">
                                   <button
                                     onClick={() => setReplyingTo(null)}
                                     className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                                    disabled={isSubmitting}
                                   >
                                     Cancel
                                   </button>
                                   <button
                                     onClick={() => handlePostReply(discussion._id)}
-                                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg"
+                                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={!replyContent.trim() || isSubmitting}
                                   >
-                                    Reply
+                                    {isSubmitting ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Sending...
+                                      </div>
+                                    ) : (
+                                      'Reply'
+                                    )}
                                   </button>
                                 </div>
                               </div>
@@ -455,24 +614,29 @@ const DiscussionPage = () => {
                 </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* Help Button */}
-        <div className="fixed bottom-8 right-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="fixed bottom-8 right-8"
+        >
           <Link to="/experts">
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-green-500 hover:bg-green-600 text-white font-medium p-4 rounded-full shadow-lg"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white font-medium p-6 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300"
             >
               <span className="sr-only">Get Expert Help</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </motion.button>
           </Link>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
