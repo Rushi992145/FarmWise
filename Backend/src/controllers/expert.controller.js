@@ -17,25 +17,36 @@ export const verifyExpert = async (req, res) => {
   
       console.log(specialization, degreeOrCirtification, experience, city, country, about);
       let doc = null;
+      let adharPanDoc = null;
 
-      console.log(req.file);
-      if (req.file) {
-        const uploadedDoc = await uploadOnCloudinary(req.file.path);
-        doc = {
-          public_id: uploadedDoc.public_id,
-          url: uploadedDoc.secure_url,
-        };
+      console.log(req.files);
+      if (req.files) {
+        if (req.files.proofDocument) {
+          const uploadedDoc = await uploadOnCloudinary(req.files.proofDocument[0].path);
+          doc = {
+            public_id: uploadedDoc.public_id,
+            url: uploadedDoc.secure_url,
+          };
+        }
+        if (req.files.adharPanDocument) {
+          const uploadedAdharPanDoc = await uploadOnCloudinary(req.files.adharPanDocument[0].path);
+          adharPanDoc = {
+            public_id: uploadedAdharPanDoc.public_id,
+            url: uploadedAdharPanDoc.secure_url,
+          };
+        }
       }
   
       const expert = await Expert.create({
         specialization,
         degreeOrCirtification,
-        proofDocument:doc?.url,
+        proofDocument: doc?.url,
+        adharPanDocument: adharPanDoc?.url,
         experience,
         city,
         country,
         about,
-        userId: req.params.id, // make sure this is populated before
+        userId: req.params.id,
       });
   
       res.status(200).json({

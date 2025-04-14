@@ -3,21 +3,38 @@ import ReactDOM from 'react-dom';
 import "react-responsive-carousel/lib/styles/carousel.min.css"; // requires a loader
 import { Carousel } from 'react-responsive-carousel';
 
+
 class DemoCarousel extends Component {
     render() {
         return (
-            <Carousel>
+            <Carousel
+                showArrows={true}
+                showStatus={false}
+                showThumbs={false}
+                showIndicators={false}
+                infiniteLoop={true}
+                autoPlay={true}
+                interval={3000}
+                transitionTime={1000}
+                stopOnHover={false}
+                swipeable={true}
+                emulateTouch={true}
+                dynamicHeight={false}
+                useKeyboardArrows={true}
+                axis="horizontal"
+                verticalSwipe="natural"
+            >
                 <div>
-                    <img src="./1.jpeg" />
-                    <p className="legend">Legend 1</p>
+                    <img src="./1.jpg" />
+                    {/* <p className="legend">Legend 1</p> */}
                 </div>
                 <div>
                     <img src="./2.jpg" />
-                    <p className="legend">Legend 2</p>
+                    {/* <p className="legend">Legend 2</p> */}
                 </div>
                 <div>
                     <img src="./3.jpg" />
-                    <p className="legend">Legend 3</p>
+                    {/* <p className="legend">Legend 3</p> */}
                 </div>
             </Carousel>
         );

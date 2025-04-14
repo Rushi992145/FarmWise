@@ -14,7 +14,10 @@ router.get("/", getAllExperts);
 
 router.get("/:id", getExpertBookings);
 
-router.post("/:id/verify", upload.single("proofDocument"), verifyExpert);
+router.post("/:id/verify", upload.fields([
+    { name: 'proofDocument', maxCount: 1 },
+    { name: 'adharPanDocument', maxCount: 1 }
+]), verifyExpert);
 
 
 export default router;
