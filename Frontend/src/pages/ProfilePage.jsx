@@ -21,6 +21,7 @@ const ProfilePage = () => {
   const [applicationError, setApplicationError] = useState('');
   const [degree, setDegree] = useState('');
   const [proofDocumentFile, setProofDocumentFile] = useState(null);
+  const [adharPanDocumentFile, setAdharPanDocumentFile] = useState(null);
   const [experience, setExperience] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
@@ -80,9 +81,17 @@ const ProfilePage = () => {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setProofDocumentFile(e.target.files[0]);
+      if (e.target.name === 'proofDocument') {
+        setProofDocumentFile(e.target.files[0]);
+      } else if (e.target.name === 'adharPanDocument') {
+        setAdharPanDocumentFile(e.target.files[0]);
+      }
     } else {
-      setProofDocumentFile(null);
+      if (e.target.name === 'proofDocument') {
+        setProofDocumentFile(null);
+      } else if (e.target.name === 'adharPanDocument') {
+        setAdharPanDocumentFile(null);
+      }
     }
   };
 
@@ -91,8 +100,8 @@ const ProfilePage = () => {
     setApplicationStatus('submitting');
     setApplicationError('');
 
-    if (!degree || (!proofDocumentFile && user.userType !== 'expert') || !experience || !city || !country || !about) {
-      setApplicationError('Please fill in all required fields and upload a proof document (if applying).');
+    if (!degree || (!proofDocumentFile && user.userType !== 'expert') || !adharPanDocumentFile || !experience || !city || !country || !about) {
+      setApplicationError('Please fill in all required fields and upload both documents.');
       setApplicationStatus('error');
       return;
     }
@@ -110,6 +119,9 @@ const ProfilePage = () => {
     formData.append('about', about);
     if (proofDocumentFile) {
       formData.append('proofDocument', proofDocumentFile);
+    }
+    if (adharPanDocumentFile) {
+      formData.append('adharPanDocument', adharPanDocumentFile);
     }
 
     try {
@@ -274,6 +286,19 @@ const ProfilePage = () => {
                         {proofDocumentFile && (<span className="text-sm text-gray-600 flex items-center gap-1"><FaPaperclip className="text-green-500" /> {proofDocumentFile.name}</span>)}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">Upload certificate/license (PDF, JPG, PNG). {user.userType === 'expert' && 'Leave blank if not changing.'}</p>
+                    </div>
+                    <div>
+                      <label htmlFor="adharPanDocument" className="block text-sm font-medium text-gray-700 mb-1">
+                        Upload Adhar/PAN Document *
+                      </label>
+                      <div className="mt-1 flex items-center space-x-2">
+                        <label htmlFor="adharPanDocument" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                          <FaFileUpload className="inline-block mr-2" /> Choose File
+                        </label>
+                        <input type="file" id="adharPanDocument" name="adharPanDocument" onChange={handleFileChange} required accept=".pdf,.jpg,.jpeg,.png" className="sr-only" />
+                        {adharPanDocumentFile && (<span className="text-sm text-gray-600 flex items-center gap-1"><FaPaperclip className="text-green-500" /> {adharPanDocumentFile.name}</span>)}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Upload Adhar Card or PAN Card (PDF, JPG, PNG)</p>
                     </div>
                     <div>
                       <label htmlFor="about" className="block text-sm font-medium text-gray-700 mb-1">About Me *</label>

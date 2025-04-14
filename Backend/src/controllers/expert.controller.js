@@ -8,51 +8,63 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 
 export const verifyExpert = async (req, res) => {
-  try {
-    const {
-      specialization,
-      degreeOrCirtification,
-      experience,
-      city,
-      country,
-      about,
-    } = req.body;
+    try {
+      const {
+        specialization,
+        degreeOrCirtification,
+        experience,
+        city,
+        country,
+        about,
+      } = req.body;
+  
+      console.log(specialization, degreeOrCirtification, experience, city, country, about);
+      let doc = null;
+      let adharPanDoc = null;
 
-    console.log(specialization, degreeOrCirtification, experience, city, country, about);
-    let doc = null;
-
-    if (req.file) {
-      const uploadedDoc = await uploadOnCloudinary(req.file.path);
-      doc = {
-        public_id: uploadedDoc.public_id,
-        url: uploadedDoc.secure_url,
-      };
+      console.log(req.files);
+      if (req.files) {
+        if (req.files.proofDocument) {
+          const uploadedDoc = await uploadOnCloudinary(req.files.proofDocument[0].path);
+          doc = {
+            public_id: uploadedDoc.public_id,
+            url: uploadedDoc.secure_url,
+          };
+        }
+        if (req.files.adharPanDocument) {
+          const uploadedAdharPanDoc = await uploadOnCloudinary(req.files.adharPanDocument[0].path);
+          adharPanDoc = {
+            public_id: uploadedAdharPanDoc.public_id,
+            url: uploadedAdharPanDoc.secure_url,
+          };
+        }
+      }
+  
+      const expert = await Expert.create({
+        specialization,
+        degreeOrCirtification,
+        proofDocument: doc?.url,
+        adharPanDocument: adharPanDoc?.url,
+        experience,
+        city,
+        country,
+        about,
+        userId: req.params.id,
+      });
+  
+      res.status(200).json({
+        success: true,
+        message: "Expert verified successfully",
+        data: expert,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
     }
-
-    const expert = await Expert.create({
-      specialization,
-      degreeOrCirtification,
-      proofDocument: doc?.url,
-      experience,
-      city,
-      country,
-      about,
-      userId: req.params.id, // make sure this is populated before
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Expert verified successfully",
-      data: expert,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
+  };
+  
 
 
 

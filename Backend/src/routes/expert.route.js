@@ -15,13 +15,10 @@ const router = express.Router();
 router.get("/", getAllExperts);
 router.get("/:id", getExpertBookings);
 
-// Protected routes
-router.post("/:id/verify", upload.single("proofDocument"), verifyExpert);
+router.post("/:id/verify", upload.fields([
+    { name: 'proofDocument', maxCount: 1 },
+    { name: 'adharPanDocument', maxCount: 1 }
+]), verifyExpert);
 
-// Make the applications endpoint public so all users can see expert applications
-router.get("/applications", getAllExpertApplications);
-
-// But keep the verification action admin-only
-router.patch("/:expertId/verify", adminVerifyExpert);
 
 export default router;

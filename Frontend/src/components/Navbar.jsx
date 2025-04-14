@@ -34,7 +34,7 @@ const Navbar = () => {
         { name: "Home", path: "/" },
         { name: "Blog", path: "/blog" },
         { name: "Discussion", path: "/discussion" },
-        { name: "Hire Expert", path: "/experts" },
+        ...(user?.userType !== 'expert' ? [{ name: "Hire Expert", path: "/experts" }] : []),
         { name: "AI Sathi", path: "/aisathi", highlight: true },
         { name: "News", path: "/news" },
         // { name: "About Us", path: "/about-us" }

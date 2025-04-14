@@ -6,7 +6,7 @@ import DemoCarousel from '../components/Carousel'
 const Home = () => {
   return (
     <>
-      <HeroSection />
+      <DemoCarousel />
       <WhatWeDo/>
       <TestimonialCarousel/>
     </>
