@@ -130,6 +130,31 @@ const Navbar = () => {
                         />
                     </motion.div>
                 ))}
+
+                {/* Make the Expert Verification Dashboard available to all users */}
+                <motion.div
+                    className="relative"
+                    initial="initial"
+                    whileHover="hover"
+                >
+                    <Link to="/admin/dashboard">
+                        <motion.div
+                            className="px-4 py-2 rounded-lg block transition-colors duration-200 text-gray-800 hover:bg-green-50"
+                            variants={navItemVariants}
+                            initial="hidden"
+                            animate="visible"
+                            custom={navItems.length}
+                        >
+                            Verification Dashboard
+                        </motion.div>
+                    </Link>
+                    <motion.div
+                        variants={underlineVariants}
+                        initial="initial"
+                        animate={location.pathname === "/admin/dashboard" ? "active" : "initial"}
+                        className="absolute bottom-0 h-[2px] bg-green-500"
+                    />
+                </motion.div>
             </div>
 
             {/* Mobile Menu Button */}
@@ -168,6 +193,20 @@ const Navbar = () => {
                                 </motion.div>
                             </Link>
                         ))}
+                        <Link
+                            to="/admin/dashboard"
+                            onClick={() => setMobileMenuOpen(false)}
+                        >
+                            <motion.div
+                                className="block px-6 py-3 text-gray-800 hover:bg-green-50"
+                                variants={navItemVariants}
+                                initial="hidden"
+                                animate="visible"
+                                custom={navItems.length}
+                            >
+                                Verification Dashboard
+                            </motion.div>
+                        </Link>
                     </motion.div>
                 )}
             </AnimatePresence>

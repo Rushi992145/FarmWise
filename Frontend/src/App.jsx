@@ -15,6 +15,7 @@ import { useDispatch } from 'react-redux';
 import { getMe } from './store/features/authSlice';
 import ProfilePage from './pages/ProfilePage';
 import Chat from './pages/Chat';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   const dispatch = useDispatch();
@@ -42,6 +43,8 @@ function App() {
             <Route path="/chat" element={<Chat />} />
             <Route path="/experts" element={<ExpertsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/expert-verification" element={<AdminDashboard />} />
           </Routes>
         </main>
         <Footer />
