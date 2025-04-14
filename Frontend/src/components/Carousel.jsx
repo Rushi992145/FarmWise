@@ -25,15 +25,15 @@ class DemoCarousel extends Component {
                 verticalSwipe="natural"
             >
                 <div>
-                    <img src="./1.jpg" />
+                    <img src="./4.jpg" />
                     {/* <p className="legend">Legend 1</p> */}
                 </div>
                 <div>
-                    <img src="./2.jpg" />
+                    <img src="./5.jpg" />
                     {/* <p className="legend">Legend 2</p> */}
                 </div>
                 <div>
-                    <img src="./3.jpg" />
+                    <img src="./6.jpg" />
                     {/* <p className="legend">Legend 3</p> */}
                 </div>
             </Carousel>
