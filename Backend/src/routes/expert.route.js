@@ -1,31 +1,20 @@
 import express from "express";
 import {
-    createExpert,
     getAllExperts,
-    getExpertById,
-    updateExpert,
-    deleteExpert,
+    getExpertBookings,
     verifyExpert
 } from "../controllers/expert.controller.js";
+import multer from "multer";
+const upload = multer({ dest: "uploads/" }); // temp upload dir
+
 
 const router = express.Router();
 
-// Create expert
-router.post("/", createExpert);
-
-// Get all experts
 router.get("/", getAllExperts);
 
-// Get expert by ID
-router.get("/:id", getExpertById);
+router.get("/:id", getExpertBookings);
 
-// Update expert
-router.put("/:id", updateExpert);
+router.post("/:id/verify", upload.single("proofDocument"), verifyExpert);
 
-// Delete expert
-router.delete("/:id", deleteExpert);
-
-// Verify expert
-router.patch("/:id/verify", verifyExpert);
 
 export default router;

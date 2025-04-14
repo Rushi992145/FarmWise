@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import axios from "axios";  
+import axios from "axios";
 
 const app = express();
 
@@ -20,11 +20,15 @@ app.use(cookieParser())
 import userRouter from "./routes/user.routes.js"
 import blogRouter from "./routes/blog.routes.js"
 import messageRouter from "./routes/message.routes.js"
+import expertRouter from "./routes/expert.route.js"
+import bookingRouter from "./routes/booking.routes.js"
 
 //routes declaration
 app.use("/api/farmwise/users", userRouter)
 app.use("/api/farmwise/blog", blogRouter)
 app.use("/api/farmwise/messages", messageRouter)
+app.use("/api/farmwise/expert",expertRouter )
+app.use("/api/farmwise/booking",bookingRouter )
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({ message: "Service is healthy!" });
@@ -66,14 +70,14 @@ app.get("/worldnews", async (req, res) => {
 
         // Log the response for debugging
         console.log(`Fetched ${response.data.articles?.length} articles`);
-        
+
         res.json(response.data);
     } catch (error) {
         console.error("News API Error Details:", {
             message: error.message,
             response: error.response?.data
         });
-        res.status(500).json({ 
+        res.status(500).json({
             status: "error",
             message: "Failed to fetch news",
             details: error.message
@@ -102,7 +106,7 @@ app.get("/indiannews", async (req, res) => {
         res.json(response.data);
     } catch (error) {
         console.error("News API Error:", error);
-        res.status(500).json({ 
+        res.status(500).json({
             status: "error",
             message: "Failed to fetch news"
         });

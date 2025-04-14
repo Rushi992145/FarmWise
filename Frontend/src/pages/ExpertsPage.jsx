@@ -24,9 +24,10 @@ const ExpertsPage = () => {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await axios.get('http://localhost:9000/api/farmwise/experts', {
+                const response = await axios.get('http://127.0.0.1:9000/api/farmwise/expert', {
                     withCredentials: true
                 });
+                console.log('Experts fetched:', response.data.data);
                 setExperts(response.data.data || []);
                 setLoading(false);
             } catch (error) {
@@ -47,15 +48,17 @@ const ExpertsPage = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:9000/api/farmwise/booking', {
+            console.log('Booking details:', bookingExpert)
+            const response = await axios.post('http://localhost:9000/api/farmwise/booking/apply', {
                 expertId: bookingExpert._id,
+                userId: user._id,
                 date: bookingDate,
                 time: bookingTime,
                 message: bookingMessage
             }, {
                 withCredentials: true
             });
-
+            console.log('Booking response:', response.data);
             alert('Appointment booked successfully!');
             setBookingExpert(null);
             setBookingDate('');
@@ -188,9 +191,9 @@ const ExpertsPage = () => {
                                             <FaUser className="text-green-600 text-2xl" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-semibold text-gray-800">{expert.userId?.username}</h3>
+                                            <h3 className="text-xl font-semibold text-gray-800">{expert.userId.fullname}</h3>
                                             <div className="flex items-center text-yellow-500 mt-1">
-                                                {[...Array(5)].map((_, i) => (
+                                                {expert.userId.specialization.map((_, i) => (
                                                     <FaStar key={i} className={i < 4 ? "text-yellow-500" : "text-gray-300"} />
                                                 ))}
                                                 <span className="ml-1 text-gray-600 text-sm">(4.0)</span>
@@ -207,10 +210,7 @@ const ExpertsPage = () => {
                                             <FaBriefcase className="text-green-600" />
                                             <span>{expert.experience} years of experience</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-gray-600">
-                                            <FaMapMarkerAlt className="text-green-600" />
-                                            <span>{expert.city}, {expert.country}</span>
-                                        </div>
+                                       
                                     </div>
 
                                     <div className="mb-4">
@@ -251,16 +251,15 @@ const ExpertsPage = () => {
                     </div>
                 )}
 
-                {/* Booking Modal */}
                 {bookingExpert && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="fixed inset-0 backdrop-blur bg-opacity-50 flex items-center justify-center z-50 p-4">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             className="bg-white rounded-xl shadow-lg max-w-lg w-full p-6"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-xl font-semibold text-gray-800">Book Consultation with {bookingExpert.userId?.username}</h3>
+                                <h3 className="text-xl font-semibold text-gray-800">Book Consultation with {bookingExpert.fullname}</h3>
                                 <button
                                     onClick={() => setBookingExpert(null)}
                                     className="text-gray-500 hover:text-gray-700"

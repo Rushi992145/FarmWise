@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import User from "./user.model.js";
+import {User} from "./user.model.js";
 
 const expertSchema = new mongoose.Schema({
     
@@ -44,7 +44,11 @@ const expertSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-
+    bookings:{
+        type:[mongoose.Schema.Types.ObjectId],
+        ref:"Booking",
+        default:[]
+    }
 });
 
 export const Expert = mongoose.model("Expert", expertSchema)

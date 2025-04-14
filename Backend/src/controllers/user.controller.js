@@ -5,6 +5,7 @@ import {uploadOnCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import { Expert } from "../models/expert.model.js";
 
 const generateAccessAndRefreshTokens = async(userId) => {
     try {
@@ -44,6 +45,10 @@ const registerUser = asyncHandler(async(req,res) => {
         throw new ApiError(409,"User with email or username already exists")
     }
 
+    if(userType==='expert' && !specialization) {
+        throw new ApiError(400,"Specialization is required for expert")
+    }
+    
     const user = await User.create({
         fullname,
         coverImage:"",
@@ -60,7 +65,6 @@ const registerUser = asyncHandler(async(req,res) => {
     const createdUser =  await User.findById(user._id).select(
         "-password -refreshToken"
     )
-
 
     if(!createdUser) {
         throw new ApiError(500,"Something went wrong while registering user")
