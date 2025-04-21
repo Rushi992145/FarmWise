@@ -15,13 +15,16 @@ FarmWise serves as a bridge between farmers seeking advice and experts willing t
 ![User Dashboard](/screenshots/dashboard.png)
 
 ### Ai Sathi Dashboard
-![Ai Sathi Dashboard](Frontend/public/s2.jpg)
+![Ai Sathi Dashboard](Frontend/public/s6.jpg)
 
 ### Blog Interface
-![Blog Interface](/screenshots/blog.png)
+![Blog Interface](Frontend/public/s3.jpg)
+
+### Hire expert Interface
+![Hire Expert Interface](Frontend/public/s4.jpg)
 
 ### Discussion Forum
-![Discussion Forum](/screenshots/forum.png)
+![Discussion Forum](Frontend/public/s5.jpg)
 
 ### Admin Panel
 ![Admin Panel](/screenshots/admin.png)
