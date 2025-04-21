@@ -4,6 +4,7 @@ FarmWise is a comprehensive platform designed to connect farmers, agricultural e
 
 ![FarmWise Home Page](/screenshots/homepage.png)
 
+
 ## 🌱 Overview
 
 FarmWise serves as a bridge between farmers seeking advice and experts willing to share their knowledge. The platform offers a range of features including blog posts, discussion forums, and direct messaging, all managed through a robust administrative system.
@@ -11,9 +12,7 @@ FarmWise serves as a bridge between farmers seeking advice and experts willing t
 ## 📱 Portal Screenshots
 
 ### User Dashboard
-![User Dashboard](/screenshots/dashboard1.png)
-![User Dashboard](/screenshots/dashboard2.png)
-![User Dashboard](/screenshots/dashboard3.png)
+![User Dashboard](/screenshots/dashboard.png)
 
 ### Blog Interface
 ![Blog Interface](/screenshots/blog.png)
