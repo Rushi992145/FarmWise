@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaImage, FaPaperPlane, FaRobot } from "react-icons/fa";
+import Groq from "groq-sdk";
+
+const groq = new Groq({ apiKey: import.meta.env.VITE_REACT_APP_GROK_API_KEY, dangerouslyAllowBrowser: true  });
 
 const AiPage = () => {
   const [messages, setMessages] = useState([
@@ -13,49 +16,85 @@ const AiPage = () => {
   const [input, setInput] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Function to handle Groq API response
+  const handleGroqResponse = async (query) => {
+    try {
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert farming assistant. Provide detailed, accurate information about agriculture, crop diseases, and farming practices."
+          },
+          {
+            role: "user",
+            content: query
+          }
+        ],
+        model: "llama-3.3-70b-versatile",
+      });
+
+      return chatCompletion.choices[0]?.message?.content || "I apologize, but I couldn't generate a response. Please try again.";
+    } catch (error) {
+      console.error("Error:", error);
+      return "I apologize, but I'm having trouble processing your request. Please try again.";
+    }
+  };
 
   // Function to send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!selectedImage) {
-      alert("Please upload an image for analysis.");
+    if (!input.trim() && !selectedImage) {
+      alert("Please enter a message or upload an image.");
       return;
     }
 
     // Add user's message to chat
     setMessages((prevMessages) => [
       ...prevMessages,
-      { type: "user", content: "Uploading image for analysis...", image: selectedImage },
+      { type: "user", content: input, image: selectedImage },
     ]);
 
     setLoading(true);
 
-    const formData = new FormData();
-    formData.append("file", selectedImage);
-
     try {
-      const response = await fetch("http://127.0.0.1:5000/predict", {
-        method: "POST",
-        body: formData,
-      });
+      let responseContent;
+      
+      if (selectedImage) {
+        // Handle image analysis
+        const formData = new FormData();
+        formData.append("file", selectedImage);
 
-      if (!response.ok) {
-        throw new Error("Failed to analyze image. Please try again.");
+        const response = await fetch("http://127.0.0.1:5000/predict", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to analyze image");
+        }
+
+        const data = await response.json();
+        responseContent = `Plant: ${data.plant_name} 🌱\nDisease: ${data.disease} 🦠`;
+      } else {
+        // Handle text query using Groq API
+        responseContent = await handleGroqResponse(input);
       }
-
-      const data = await response.json();
 
       setMessages((prevMessages) => [
         ...prevMessages,
-        {
-          type: "bot",
-          content: `Plant: ${data.plant_name} 🌱\nDisease: ${data.disease} 🦠`,
-        },
+        { type: "bot", content: responseContent },
       ]);
     } catch (error) {
       setMessages((prevMessages) => [
         ...prevMessages,
-        { type: "bot", content: "Error analyzing image. Please try again." },
+        { type: "bot", content: "Error processing your request. Please try again." },
       ]);
     } finally {
       setLoading(false);
@@ -69,6 +108,7 @@ const AiPage = () => {
     const file = e.target.files[0];
     if (file) {
       setSelectedImage(file);
+      setInput(""); // Clear text input when image is selected
     }
   };
 
@@ -90,10 +130,11 @@ const AiPage = () => {
                     ? "bg-green-600 text-white rounded-br-none"
                     : "bg-gray-100 text-gray-800 rounded-bl-none"}`}>
                   {message.image && <img src={URL.createObjectURL(message.image)} alt="Uploaded" className="max-w-xs rounded-lg mb-2" />}
-                  <p>{message.content}</p>
+                  <p className="whitespace-pre-line">{message.content}</p>
                 </div>
               </motion.div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Image Preview */}
@@ -116,9 +157,22 @@ const AiPage = () => {
                 </motion.div>
               </label>
 
-              <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Upload an image for analysis..." className="flex-1 rounded-xl border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-green-500" disabled />
+              <input 
+                type="text" 
+                value={input} 
+                onChange={(e) => setInput(e.target.value)} 
+                placeholder={selectedImage ? "Press send to analyze image..." : "Ask me anything about farming..."} 
+                className="flex-1 rounded-xl border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                disabled={loading}
+              />
 
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} type="submit" className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700" disabled={loading}>
+              <motion.button 
+                whileHover={{ scale: 1.1 }} 
+                whileTap={{ scale: 0.9 }} 
+                type="submit" 
+                className="p-2 rounded-full bg-green-600 text-white hover:bg-green-700" 
+                disabled={loading || (!input.trim() && !selectedImage)}
+              >
                 <FaPaperPlane className="text-xl" />
               </motion.button>
             </div>
