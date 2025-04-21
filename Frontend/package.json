@@ -18,6 +18,7 @@
     "@tailwindcss/vite": "^4.0.14",
     "axios": "^1.8.4",
     "date-fns": "^4.1.0",
+    "groq-sdk": "^0.19.0",
     "material-symbols": "^0.29.1",
     "motion": "^12.5.0",
     "react": "^19.0.0",
