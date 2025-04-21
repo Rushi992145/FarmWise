@@ -23,7 +23,7 @@ export default function Chat() {
 
   // Get current user from localStorage
   const { user } = useSelector((state) => state.auth);
-  const { accessToken, refreshToken } = useSelector((state) => state.auth);
+    const { accessToken } = useSelector((state) => state.auth);
   // const currentUser = user;
   // console.log(currentUser);
 
@@ -71,7 +71,7 @@ export default function Chat() {
     try {
       const response = await axios.get(`${BACKEND_URL}/api/farmwise/messages/get`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          Authorization: `Bearer ${accessToken}`
         },
         withCredentials: true
       });
