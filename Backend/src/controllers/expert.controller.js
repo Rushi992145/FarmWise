@@ -15,13 +15,25 @@ export const verifyExpert = async (req, res) => {
       about,
     } = req.body;
 
-    console.log(specialization, degreeOrCirtification, experience, city, country, about);
-    let doc = null;
+    console.log('Request body:', req.body);
+    console.log('Request files:', req.files);
 
-    console.log(req.file);
-    if (req.file) {
-      const uploadedDoc = await uploadOnCloudinary(req.file.path);
-      doc = {
+    let proofDoc = null;
+    let adharPanDoc = null;
+
+    // Handle proof document upload
+    if (req.files && req.files.proofDocument) {
+      const uploadedDoc = await uploadOnCloudinary(req.files.proofDocument[0].path);
+      proofDoc = {
+        public_id: uploadedDoc.public_id,
+        url: uploadedDoc.secure_url,
+      };
+    }
+
+    // Handle Adhar/PAN document upload
+    if (req.files && req.files.adharPanDocument) {
+      const uploadedDoc = await uploadOnCloudinary(req.files.adharPanDocument[0].path);
+      adharPanDoc = {
         public_id: uploadedDoc.public_id,
         url: uploadedDoc.secure_url,
       };
@@ -30,12 +42,13 @@ export const verifyExpert = async (req, res) => {
     const expert = await Expert.create({
       specialization,
       degreeOrCirtification,
-      proofDocument: doc?.url,
+      proofDocument: proofDoc?.url,
+      adharPanDocument: adharPanDoc?.url,
       experience,
       city,
       country,
       about,
-      userId: req.params.id, // make sure this is populated before
+      userId: req.params.id,
     });
 
     res.status(200).json({
@@ -44,6 +57,7 @@ export const verifyExpert = async (req, res) => {
       data: expert,
     });
   } catch (error) {
+    console.error('Error in verifyExpert:', error);
     res.status(400).json({
       success: false,
       message: error.message,

@@ -100,48 +100,83 @@ const ProfilePage = () => {
     setApplicationStatus('submitting');
     setApplicationError('');
 
-    if (!degree || (!proofDocumentFile && user.userType !== 'expert') || !adharPanDocumentFile || !experience || !city || !country || !about) {
-      setApplicationError('Please fill in all required fields and upload both documents.');
-      setApplicationStatus('error');
-      return;
-    }
-    if (isNaN(Number(experience)) || Number(experience) < 0) {
-      setApplicationError('Experience must be a positive number.');
-      setApplicationStatus('error');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('degreeOrCirtification', degree);
-    formData.append('experience', Number(experience));
-    formData.append('city', city);
-    formData.append('country', country);
-    formData.append('about', about);
-    if (proofDocumentFile) {
-      formData.append('proofDocument', proofDocumentFile);
-    }
-    if (adharPanDocumentFile) {
-      formData.append('adharPanDocument', adharPanDocumentFile);
-    }
-
     try {
-      const apiEndpoint = `http://localhost:9000/api/farmwise/expert/${user._id}/verify`
-      const apiMethod = 'post';
+      // Validate required fields
+      if (!degree || !experience || !city || !country || !about) {
+        setApplicationError('Please fill in all required fields.');
+        setApplicationStatus('error');
+        return;
+      }
 
-      const response = await axios[apiMethod](
-        apiEndpoint,
+      if (isNaN(Number(experience)) || Number(experience) < 0) {
+        setApplicationError('Experience must be a positive number.');
+        setApplicationStatus('error');
+        return;
+      }
+
+      // Validate files if not an expert
+      if (user.userType !== 'expert') {
+        if (!proofDocumentFile || !adharPanDocumentFile) {
+          setApplicationError('Please upload both required documents.');
+          setApplicationStatus('error');
+          return;
+        }
+      }
+
+      const formData = new FormData();
+      
+      // Add text fields
+      formData.append('degreeOrCirtification', degree);
+      formData.append('experience', Number(experience));
+      formData.append('city', city);
+      formData.append('country', country);
+      formData.append('about', about);
+
+      // Add files with proper field names
+      if (proofDocumentFile) {
+        formData.append('proofDocument', proofDocumentFile);
+      }
+      if (adharPanDocumentFile) {
+        formData.append('adharPanDocument', adharPanDocumentFile);
+      }
+
+      // Log form data for debugging
+      console.log('Form Data Contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      const response = await axios.post(
+        `http://localhost:9000/api/farmwise/expert/${user._id}/verify`,
         formData,
         {
-          withCredentials: true,
-          headers: { /* 'Content-Type' set by Axios for FormData */ },
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          withCredentials: true
         }
       );
 
-      setApplicationStatus('submitted');
-      setShowApplyForm(false);
+      if (response.data.success) {
+        setApplicationStatus('submitted');
+        setShowApplyForm(false);
+        window.location.reload();
+      } else {
+        throw new Error(response.data.message || 'Failed to submit information');
+      }
     } catch (err) {
-      console.error('Error submitting expert info:', err);
-      setApplicationError(err.response?.data?.message || 'Failed to submit information. Please try again.');
+      console.error('Detailed error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText
+      });
+
+      setApplicationError(
+        err.response?.data?.message || 
+        err.message || 
+        'Failed to submit information. Please try again.'
+      );
       setApplicationStatus('error');
     }
   };
