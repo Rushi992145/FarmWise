@@ -2,7 +2,7 @@
 
 FarmWise is a comprehensive platform designed to connect farmers, agricultural experts, and administrators in a collaborative environment. The system facilitates knowledge sharing, problem-solving, and community building within the agricultural sector.
 
-![FarmWise Home Page](/screenshots/homepage.png)
+![FarmWise Home Page](Frontend/public/s1.jpg)
 
 
 ## 🌱 Overview
@@ -13,6 +13,9 @@ FarmWise serves as a bridge between farmers seeking advice and experts willing t
 
 ### User Dashboard
 ![User Dashboard](/screenshots/dashboard.png)
+
+### Ai Sathi Dashboard
+![Ai Sathi Dashboard](Frontend/public/s2.jpg)
 
 ### Blog Interface
 ![Blog Interface](/screenshots/blog.png)
